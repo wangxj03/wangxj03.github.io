@@ -13,7 +13,7 @@
       <pubDate>Fri, 12 May 2023 13:53:01 -0700</pubDate>
       
       <guid>https://wangxj03.github.io/posts/how-to-use-collate-fn-in-pytorch/</guid>
-      <description>Introduction What is a collate_fn?</description>
+      <description>Introduction What is a collate_fn? It is a function.</description>
     </item>
     
   </channel>

@@ -9,10 +9,10 @@
     <lastBuildDate>Fri, 12 May 2023 13:53:01 -0700</lastBuildDate><atom:link href="https://wangxj03.github.io/tags/pytorch/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>How to Use collate_fn in PyTorch</title>
-      <link>https://wangxj03.github.io/posts/how-to-use-collate-fn-in-pytorch/</link>
+      <link>https://wangxj03.github.io/posts/2023-05-12-how-to-use-collate-fn-in-pytorch/</link>
       <pubDate>Fri, 12 May 2023 13:53:01 -0700</pubDate>
       
-      <guid>https://wangxj03.github.io/posts/how-to-use-collate-fn-in-pytorch/</guid>
+      <guid>https://wangxj03.github.io/posts/2023-05-12-how-to-use-collate-fn-in-pytorch/</guid>
       <description>Introduction What is a collate_fn? It is a function.</description>
     </item>
     

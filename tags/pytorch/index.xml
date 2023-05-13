@@ -14,6 +14,9 @@
       
       <guid>https://wangxj03.github.io/posts/2023-05-12-how-to-use-collate-fn-in-pytorch/</guid>
       <description>Introduction What is a collate_fn? It is a function.</description>
+      <content:encoded><![CDATA[<h2 id="introduction">Introduction</h2>
+<p>What is a <code>collate_fn</code>? It is a function.</p>
+]]></content:encoded>
     </item>
     
   </channel>

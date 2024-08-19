@@ -74,6 +74,10 @@ params:
     Content: Hi, this is Xiaojing. I’m documenting my learning notes on AI/ML in this blog.
 
   socialIcons:
+    - name: rss
+      url: "/index.xml"
+    - name: linkedin
+      url: "https://www.linkedin.com/in/xiaojingw/"
     - name: github
       url: "https://github.com/wangxj03"
 

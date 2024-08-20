@@ -33,49 +33,95 @@ develop a GenAI chatbot with both input and output guardrails. The input
 guardrail ensures only topics related to dogs or cats are discussed, while the
 output guardrail prevents the chatbot from providing animal breeding advice.
 
-## Concurrency
+## Input Guardrail
 
-When implementing guardrails in a GenAI chatbot, it's crucial to handle multiple
-tasks concurrently to ensure efficient processing and responsiveness. In this
-design, we employ two concurrent operations:
-
-1. **Input Topic Validation**: This process checks if the user's input topic is related
-   to dogs or cats, as defined by the input guardrail. It ensures that the chatbot
-   only engages in conversations on approved topics.
-
-1. **Response Generation and Moderation**: Concurrently, the chatbot generates a
-   response to the user's query. After generating the response, the output
-   guardrail kicks in, moderating the response to ensure it does not include any
-   animal breeding advice or other restricted content.
-
-### Implementation
+We implement the input guardrail with a simple prompt to check if the user query
+is related to dogs or cats.
 
 ```python
-class GuardrailException(Exception):
-    pass
+TOPIC_GUARDRAIL_PROMPT = """
+Assess whether the user question is allowed or not. The allowed topics are cats and dogs.
+"""
 ```
 
+The guardrail will raise an exception for any off-topic queries.
+
 ```python
-async def check_topic(client: AsyncOpenAI, model: str, content: str) -> str:
+class TopicGuardrailResult(BaseModel):
+    allowed: bool
+
+
+async def topic_guardrail(client: AsyncOpenAI, model: str, content: str) -> None:
     messages = [
         ChatCompletionSystemMessageParam(role="system", content=TOPIC_GUARDRAIL_PROMPT),
         ChatCompletionUserMessageParam(role="user", content=content),
     ]
-    completion = await client.chat.completions.create(
-        model=model, messages=messages, temperature=0.0
+    completion = await client.beta.chat.completions.parse(
+        model=model,
+        messages=messages,
+        temperature=0.0,
+        response_format=TopicGuardrailResult,
     )
-    return completion.choices[0].message.content or ""
+    parsed = completion.choices[0].message.parsed
 
-
-async def topic_guardrail(client: AsyncOpenAI, model: str, content: str) -> None:
-    result = await check_topic(client=client, model=model, content=content)
-    if result.strip().lower() == "not_allowed":
+    if parsed is None or not parsed.allowed:
         raise GuardrailException("Only topics related to dogs or cats are allowed!")
 ```
 
+In this implementation, we use OpenAI's latest [structured
+outputs](https://platform.openai.com/docs/guides/structured-outputs) feature to
+parse the response.
+
+## Output Guardrail
+
+We implement the output guardrail with a prompt template that includes the
+domain, scoring criteria, and scoring steps for the animal breeding advice
+moderation.
+
 ```python
-async def check_moderation(client: AsyncOpenAI, model: str, content: str) -> str:
-    prompt = MODERATION_SYSTEM_PROMPT.format(
+DOMAIN = "animal breed recommendation"
+
+ANIMAL_ADVICE_CRITERIA = """
+Assess the presence of explicit recommendation of cat or dog breeds in the content.
+The content should contain only general advice about cats and dogs, not specific breeds to purchase.
+"""
+
+ANIMAL_ADVICE_STEPS = """
+1. Read the content and the criteria carefully.
+2. Assess how much explicit recommendation of cat or dog breeds is contained in the content.
+3. Assign an animal advice score from 1 to 5, with 1 being no explicit cat or dog breed advice, and 5 being multiple named cat or dog breeds.
+"""
+
+MODERATION_GUARDRAIL_PROMPT = """
+You are a moderation assistant. Your role is to detect content about {domain} in the text provided, and mark the severity of that content.
+
+## {domain}
+
+### Criteria
+
+{scoring_criteria}
+
+### Instructions
+
+{scoring_steps}
+
+### Content
+
+{content}
+
+### Evaluation (score only!)
+"""
+```
+
+The guardrail will raise an exception if the score exceeds a certain threshold.
+
+```python
+class ModerationGuardrailResult(BaseModel):
+    score: int
+
+
+async def moderation_guardrail(client: AsyncOpenAI, model: str, content: str) -> None:
+    prompt = MODERATION_GUARDRAIL_PROMPT.format(
         domain=DOMAIN,
         scoring_criteria=ANIMAL_ADVICE_CRITERIA,
         scoring_steps=ANIMAL_ADVICE_STEPS,
@@ -83,20 +129,102 @@ async def check_moderation(client: AsyncOpenAI, model: str, content: str) -> str
     )
 
     messages = [ChatCompletionUserMessageParam(role="user", content=prompt)]
-    completion = await client.chat.completions.create(
-        model=model, messages=messages, temperature=0.0
+    completion = await client.beta.chat.completions.parse(
+        model=model,
+        messages=messages,
+        temperature=0.0,
+        response_format=ModerationGuardrailResult,
     )
-    return completion.choices[0].message.content or ""
+    parsed = completion.choices[0].message.parsed
 
-
-async def moderation_guardrail(client: AsyncOpenAI, model: str, content: str) -> None:
-    score = await check_moderation(client=client, model=model, content=content)
-    if int(score) >= 3:
+    if parsed is None or parsed.score >= 3:
         raise GuardrailException(
             "Response skipped because animal breeding advice was detected!"
         )
 ```
 
+## Orchestration
+
+When implementing guardrails in a GenAI chatbot, it's essential to manage
+multiple tasks concurrently to maintain both efficiency and responsiveness. The
+orchestration of these tasks can be visualized as a Directed Acyclic Graph
+(DAG), where each task is a node, and dependencies determine the execution flow.
+
+In this design, we organize the guardrails into two concurrent tasks:
+
+1. **Run topic guardrail**
+
+1. **Run chat completion and moderation guardrail** which includes two subtasks
+   running sequentially.
+
+If the topic guardrail raises an exception—indicating that the user's input is
+off-topic—the second task, which is handling the chat completion and moderation,
+will be canceled if it is still running. This early cancellation prevents
+unnecessary processing, saving computational resources. Similarly, if the
+moderation guardrail detects inappropriate content in the generated response,
+the chat completion will be effectively skipped, and an error message will be
+returned instead.
+
+We don't need to use a fancy orchestration framework for this simple example.
+Basic Python constructs like `asyncio.create_task` is sufficient.
+
+```python
+
+async def chat_with_guardrails(
+    client: AsyncOpenAI, model: str, messages: list[ChatCompletionMessageParam]
+) -> ChatCompletion:
+    last_message = messages[-1]
+    content = str(last_message["content"])
+
+    async def run_topic_guardrail():
+        await topic_guardrail(client=client, model=model, content=content)
+
+    async def run_completion_and_moderation_guardrail():
+        completion = await client.chat.completions.create(
+            model=model, messages=messages
+        )
+        content = completion.choices[0].message.content or ""
+        await moderation_guardrail(client=client, model=model, content=content)
+        return completion
+
+    try:
+        topic_task = asyncio.create_task(run_topic_guardrail())
+        completion_task = asyncio.create_task(run_completion_and_moderation_guardrail())
+
+        # Wait for topic check to complete
+        await topic_task
+
+        # If topic check passes, wait for completion and moderation check
+        completion = await completion_task
+
+        return completion
+
+    except GuardrailException as e:
+        completion_task.cancel()
+        error_message = str(e)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
+    # If a GuardrailException was caught, return an error completion
+    return ChatCompletion(
+        id=f"chatcomp-{uuid4()}",
+        choices=[
+            ChatCompletionChoice(
+                index=0,
+                message=ChatCompletionMessage(role="assistant", content=error_message),
+                finish_reason="stop",
+            )
+        ],
+        created=int(time.time()),
+        model=model,
+        object="chat.completion",
+    )
+```
+
 ## FastAPI Server
 
 TODO
+
+```
+
+```

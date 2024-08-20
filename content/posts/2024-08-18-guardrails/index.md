@@ -145,7 +145,7 @@ async def moderation_guardrail(client: AsyncOpenAI, model: str, content: str) ->
         )
 ```
 
-### Orchestration
+### Concurrency
 
 When implementing guardrails in a GenAI chatbot, it's essential to manage
 multiple tasks concurrently to maintain both efficiency and responsiveness. The
@@ -248,9 +248,9 @@ def create_fastapi_app(client: AsyncOpenAI) -> FastAPI:
 The service features a single endpoint `/v1/chat/completions` that is compatible
 to OpenAI's chat completion API.
 
-### Sample Requests
+## Observability
 
-#### Good
+### Sample Request: Good
 
 ```bash
 curl -X POST "http://0.0.0.0:8000/v1/chat/completions" \
@@ -300,7 +300,9 @@ curl -X POST "http://0.0.0.0:8000/v1/chat/completions" \
 
 {{< /details >}}
 
-#### Bad Input
+![](trace_good.png)
+
+### Sample Request: Bad Input
 
 ```bash
 curl -X POST "http://0.0.0.0:8000/v1/chat/completions" \
@@ -346,7 +348,9 @@ curl -X POST "http://0.0.0.0:8000/v1/chat/completions" \
 
 {{< /details >}}
 
-#### Bad Output
+![](trace_bad_topic.png)
+
+### Sample Request: Bad Output
 
 ```bash
 curl -X POST "http://0.0.0.0:8000/v1/chat/completions" \
@@ -391,3 +395,7 @@ curl -X POST "http://0.0.0.0:8000/v1/chat/completions" \
 ```
 
 {{< /details >}}
+
+![](trace_bad_moderation.png)
+
+![](moderation_guardrail.png)

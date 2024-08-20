@@ -33,7 +33,9 @@ develop a GenAI chatbot with both input and output guardrails. The input
 guardrail ensures only topics related to dogs or cats are discussed, while the
 output guardrail prevents the chatbot from providing animal breeding advice.
 
-## Input Guardrail
+## Guardrail Implementation
+
+### Input Guardrail
 
 We implement the input guardrail with a simple prompt to check if the user query
 is related to dogs or cats.
@@ -72,7 +74,7 @@ In this implementation, we use OpenAI's latest [structured
 outputs](https://platform.openai.com/docs/guides/structured-outputs) feature to
 parse the response.
 
-## Output Guardrail
+### Output Guardrail
 
 We implement the output guardrail with a prompt template that includes the
 domain, scoring criteria, and scoring steps for the animal breeding advice
@@ -143,7 +145,7 @@ async def moderation_guardrail(client: AsyncOpenAI, model: str, content: str) ->
         )
 ```
 
-## Orchestration
+### Orchestration
 
 When implementing guardrails in a GenAI chatbot, it's essential to manage
 multiple tasks concurrently to maintain both efficiency and responsiveness. The
@@ -223,8 +225,169 @@ async def chat_with_guardrails(
 
 ## FastAPI Server
 
-TODO
+We create a simple FastAPI server to interact with the GenAI chatbot.
 
+```python
+class ChatCompletionRequest(BaseModel):
+    model: str
+    messages: list[ChatCompletionMessageParam]
+
+
+def create_fastapi_app(client: AsyncOpenAI) -> FastAPI:
+    fastapi_app = FastAPI()
+
+    @fastapi_app.post("/v1/chat/completions", response_model=ChatCompletion)
+    async def chat(request: ChatCompletionRequest) -> ChatCompletion:
+        return await chat_with_guardrails(
+            client=client, model=request.model, messages=request.messages
+        )
+
+    return fastapi_app
 ```
 
+The service features a single endpoint `/v1/chat/completions` that is compatible
+to OpenAI's chat completion API.
+
+### Sample Requests
+
+#### Good
+
+```bash
+curl -X POST "http://0.0.0.0:8000/v1/chat/completions" \
+     -H "Content-Type: application/json" \
+     -d '{
+  "model": "gpt-4o-2024-08-06",
+  "messages": [
+    {
+      "role": "user",
+      "content": "How can I introduce a new dog to my cat?"
+    }
+  ]
+}' | jq
 ```
+
+{{< details title="Click to see response" >}}
+
+```json
+{
+  "id": "chatcmpl-9yAuyWj80qJ5zIhuMxntXsIEQToL9",
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "logprobs": null,
+      "message": {
+        "content": "Introducing a new dog to your cat requires patience and careful planning to ensure a smooth transition for both pets. Here are some steps you can follow:\n\n1. **Prepare a Safe Environment**: \n   - Set up separate spaces for each animal. Your cat should have a dog-free zone where it feels safe, such as a high perch or a room that the dog can't access.\n   - Ensure the dog is familiar with basic commands like \"sit,\" \"stay,\" or \"leave it,\" especially if it is not a puppy.\n\n2. **Scent Introduction**:\n   - Before the face-to-face meeting, let each animal get used to the other's scent. Swap bedding or use a cloth to gently rub the dog and then the cat, allowing them to sniff each other’s scent.\n\n3. **Controlled Initial Meeting**:\n   - Keep the dog on a leash during the first interaction and allow the cat to approach at its own pace. Reward the dog for calm behavior.\n   - Observe their reactions. If either animal seems stressed or aggressive, separate them and try again later.\n\n4. **Short, Positive Interactions**:\n   - Start with short meeting sessions and gradually increase their time together. Always supervise these interactions.\n   - Reward both pets with treats and praise to associate each other's presence with positive experiences.\n\n5. **Manage Stress**:\n   - Maintain a calm environment. Keep loud noises and disruptions to a minimum to help reduce stress.\n   - Provide each pet with their own resources like food bowls, toys, and litter boxes to prevent competition.\n\n6. **Monitor Body Language**:\n   - Pay attention to both pets’ body language. A wagging tail in a dog can signify excitement or tension, while a cat’s raised fur or growling can indicate stress.\n   - If the situation becomes tense, separate the animals and give them a break.\n\n7. **Gradual Increase in Exposure**:\n   - As they become more comfortable with each other, allow them more freedom to interact without barriers. Continue to supervise these interactions until you are confident they are comfortable together.\n\n8. **Consult Professionals if Needed**:\n   - If you're having trouble with the introduction or if either pet shows signs of stress or aggression, consider seeking advice from a professional animal behaviorist.\n\nRemember, every animal is unique, and some introductions may take longer than others. Be patient and move at a pace that is comfortable for both the dog and the cat.",
+        "refusal": null,
+        "role": "assistant",
+        "function_call": null,
+        "tool_calls": null
+      }
+    }
+  ],
+  "created": 1724128676,
+  "model": "gpt-4o-2024-08-06",
+  "object": "chat.completion",
+  "service_tier": null,
+  "system_fingerprint": "fp_baa7103b2c",
+  "usage": {
+    "completion_tokens": 492,
+    "prompt_tokens": 18,
+    "total_tokens": 510
+  }
+}
+```
+
+{{< /details >}}
+
+#### Bad Input
+
+```bash
+curl -X POST "http://0.0.0.0:8000/v1/chat/completions" \
+     -H "Content-Type: application/json" \
+     -d '{
+  "model": "gpt-4o-2024-08-06",
+  "messages": [
+    {
+      "role": "user",
+      "content": "I love pandas!"
+    }
+  ]
+}' | jq
+```
+
+{{< details title="Click to see response" >}}
+
+```json
+{
+  "id": "chatcomp-f1c51605-f8d5-4fc5-9a47-f87ba7cc84d9",
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "logprobs": null,
+      "message": {
+        "content": "Only topics related to dogs or cats are allowed!",
+        "refusal": null,
+        "role": "assistant",
+        "function_call": null,
+        "tool_calls": null
+      }
+    }
+  ],
+  "created": 1724129166,
+  "model": "gpt-4o-2024-08-06",
+  "object": "chat.completion",
+  "service_tier": null,
+  "system_fingerprint": null,
+  "usage": null
+}
+```
+
+{{< /details >}}
+
+#### Bad Output
+
+```bash
+curl -X POST "http://0.0.0.0:8000/v1/chat/completions" \
+     -H "Content-Type: application/json" \
+     -d '{
+  "model": "gpt-4o-2024-08-06",
+  "messages": [
+    {
+      "role": "user",
+      "content": "What are the best breeds of dog for people that like cats?"
+    }
+  ]
+}' | jq
+```
+
+{{< details title="Click to see response" >}}
+
+```json
+{
+  "id": "chatcomp-a9bcfe59-d970-4cb0-bb5e-fbbcc60c4f9b",
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "logprobs": null,
+      "message": {
+        "content": "Response skipped because animal breeding advice was detected!",
+        "refusal": null,
+        "role": "assistant",
+        "function_call": null,
+        "tool_calls": null
+      }
+    }
+  ],
+  "created": 1724129317,
+  "model": "gpt-4o-2024-08-06",
+  "object": "chat.completion",
+  "service_tier": null,
+  "system_fingerprint": null,
+  "usage": null
+}
+```
+
+{{< /details >}}

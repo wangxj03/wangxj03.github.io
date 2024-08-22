@@ -246,25 +246,76 @@ def create_fastapi_app(client: AsyncOpenAI) -> FastAPI:
 ```
 
 The service features a single endpoint `/v1/chat/completions` that is compatible
-to OpenAI's chat completion API.
-
-## Observability
-
-### Sample Request: Good
+to OpenAI's chat completion API. One can test the service with a simple curl command
 
 ```bash
 curl -X POST "http://0.0.0.0:8000/v1/chat/completions" \
      -H "Content-Type: application/json" \
-     -d '{
-  "model": "gpt-4o-2024-08-06",
-  "messages": [
-    {
-      "role": "user",
-      "content": "How can I introduce a new dog to my cat?"
-    }
-  ]
-}' | jq
+     -d '{"model":"gpt-4o-2024-08-06","messages":[{"role":"user","content":"How can I introduce a new dog to my cat?"}]}' | jq
 ```
+
+Or use the `openai` Python SDK with `http://0.0.0.0:8000/v1` as the base URL.
+
+```python
+from openai import OpenAI
+
+client = OpenAI(base_url="http://0.0.0.0:8000/v1")
+
+completion = client.chat.completions.create(
+    model="gpt-4o-2024-08-06",
+    messages=[{"role": "user", "content": "How can I introduce a new dog to my cat?"}],
+)
+```
+
+## Observability
+
+With the guardrails in place, it is essential to track the latency for
+understanding the user experience. To fully make sense of the response, it is
+also important to observe the intermediate results of the guardrails, error
+messages, as well as the traces of the requests passing through various system
+components.
+
+We instrument the service with [langfuse](https://langfuse.com/docs) to collect
+the traces with latency and intermediate results. The use of langfuse is
+straightforward. We just need to add the `@observe()` decorators to the
+guardrail and the chat completion functions we want to monitor.
+
+```python
+from langfuse.decorators import observe
+
+
+@observe()
+async def topic_guardrail(client: AsyncOpenAI, model: str, content: str) -> None:
+  ...
+
+@observe()
+async def moderation_guardrail(client: AsyncOpenAI, model: str, content: str) -> None:
+  ...
+
+@observe()
+async def chat_with_guardrails(
+    client: AsyncOpenAI, model: str, messages: list[ChatCompletionMessageParam]
+) -> ChatCompletion:
+  ...
+```
+
+## Sample Requests
+
+Now we test the service with a few sample requests to see how the guardrails work.
+
+### Good
+
+We start with a good query that passes both the topic guardrail and the moderation guardrail.
+
+{{< details title="Click to see request" >}}
+
+```bash
+curl -X POST "http://0.0.0.0:8000/v1/chat/completions" \
+    -H "Content-Type: application/json" \
+    -d '{"model":"gpt-4o-2024-08-06","messages":[{"role":"user","content":"How can I introduce a new dog to my cat?"}]}' | jq
+```
+
+{{< /details >}}
 
 {{< details title="Click to see response" >}}
 
@@ -300,23 +351,27 @@ curl -X POST "http://0.0.0.0:8000/v1/chat/completions" \
 
 {{< /details >}}
 
+The tracing visualization clearly shows the concurrent execution of the topic
+guardrail and the chat completion. The moderation guardrail only runs when the
+chat completion finishes. The moderation guardrail incurs a 30% latency overhead
+compared to the chat completion. The trace helps identify bottlenecks and guides
+developers to trade off between performance and security.
+
 ![](trace_good.png)
 
-### Sample Request: Bad Input
+### Bad Input
+
+We then test an off-topic query that fails the topic guardrail.
+
+{{< details title="Click to see request" >}}
 
 ```bash
 curl -X POST "http://0.0.0.0:8000/v1/chat/completions" \
      -H "Content-Type: application/json" \
-     -d '{
-  "model": "gpt-4o-2024-08-06",
-  "messages": [
-    {
-      "role": "user",
-      "content": "I love pandas!"
-    }
-  ]
-}' | jq
+     -d '{"model":"gpt-4o-2024-08-06","messages":[{"role":"user","content":"I love pandas!"}]}' | jq
 ```
+
+{{< /details >}}
 
 {{< details title="Click to see response" >}}
 
@@ -348,23 +403,25 @@ curl -X POST "http://0.0.0.0:8000/v1/chat/completions" \
 
 {{< /details >}}
 
+The tracing visualization shows the early cancellation of the chat completion
+due to the failed topic guardrail.
+
 ![](trace_bad_topic.png)
 
-### Sample Request: Bad Output
+### Bad Output
+
+Finally, we test a query that generates inappropriate content and fails the
+moderation guardrail.
+
+{{< details title="Click to see request" >}}
 
 ```bash
 curl -X POST "http://0.0.0.0:8000/v1/chat/completions" \
      -H "Content-Type: application/json" \
-     -d '{
-  "model": "gpt-4o-2024-08-06",
-  "messages": [
-    {
-      "role": "user",
-      "content": "What are the best breeds of dog for people that like cats?"
-    }
-  ]
-}' | jq
+     -d '{"model":"gpt-4o-2024-08-06","messages":[{"role":"user","content":"What are the best breeds of dog for people that like cats?"}]}' | jq
 ```
+
+{{< /details >}}
 
 {{< details title="Click to see response" >}}
 
@@ -396,6 +453,11 @@ curl -X POST "http://0.0.0.0:8000/v1/chat/completions" \
 
 {{< /details >}}
 
+The tracing visualization below is similar to the good input case, but the moderation
+guardrail raises an exception due to the detected animal breeding advice.
+
 ![](trace_bad_moderation.png)
+
+One can drill down into the traces to see the detailed input and output of each guardrail.
 
 ![](moderation_guardrail.png)

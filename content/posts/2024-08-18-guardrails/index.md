@@ -472,3 +472,5 @@ rules, maintain topic relevance, and ensure content safety. The tracing
 visualizations offer valuable insights into the system's performance, helping
 developers identify bottlenecks and make informed decisions about trade-offs
 between security and latency.
+
+See the full code on https://github.com/wangxj03/ai-design-patterns/tree/main/guardrails.

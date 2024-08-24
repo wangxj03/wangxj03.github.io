@@ -8,10 +8,10 @@ outputs compared to OpenAI&rsquo;s GPT-4. Claude.ai, the official WebUI for Anth
 models, provides a streamlined interface for interacting with these models.
 However, it has a significant drawback: strict rate limits that can be quickly
 reached.</p><p>To overcome this rate limit of claude.ai or chatgpt.com, many developers turn to
-open-source solutions. Open WebUI is a popular choice for OpenAI and Ollama
-models, but it doesn&rsquo;t natively support Anthropic models. This doesn&rsquo;t mean
-we&rsquo;re out of options. In this post, I&rsquo;ll walk you through a solution to
-integrate Anthropic models with Open WebUI.</p><h2 id=building-a-proxy-server>Building a Proxy Server<a hidden class=anchor aria-hidden=true href=#building-a-proxy-server>#</a></h2><p>Since Open WebUI supports OpenAI models, we can create a proxy server that
+open-source solutions. <a href=https://docs.openwebui.com/>Open WebUI</a> is a popular
+choice for OpenAI and Ollama models, but it doesn&rsquo;t natively support Anthropic
+models. This doesn&rsquo;t mean we&rsquo;re out of options. In this post, I&rsquo;ll walk you
+through a solution to integrate Anthropic models with Open WebUI.</p><h2 id=building-a-proxy-server>Building a Proxy Server<a hidden class=anchor aria-hidden=true href=#building-a-proxy-server>#</a></h2><p>Since Open WebUI supports OpenAI models, we can create a proxy server that
 translates OpenAI chat completion requests into Anthropic message requests and
 then converts the responses back to the OpenAI format. Essentially, the proxy
 server acts as a bridge between Open WebUI and Anthropic&rsquo;s models.</p><p>To achieve this, we need to implement three key endpoints in the proxy server:</p><ul><li><p><strong>Health check endpoint</strong> (<code>/v1</code>): This endpoint ensures that the proxy server

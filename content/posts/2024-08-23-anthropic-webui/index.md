@@ -29,10 +29,10 @@ However, it has a significant drawback: strict rate limits that can be quickly
 reached.
 
 To overcome this rate limit of claude.ai or chatgpt.com, many developers turn to
-open-source solutions. Open WebUI is a popular choice for OpenAI and Ollama
-models, but it doesn't natively support Anthropic models. This doesn't mean
-we're out of options. In this post, I'll walk you through a solution to
-integrate Anthropic models with Open WebUI.
+open-source solutions. [Open WebUI](https://docs.openwebui.com/) is a popular
+choice for OpenAI and Ollama models, but it doesn't natively support Anthropic
+models. This doesn't mean we're out of options. In this post, I'll walk you
+through a solution to integrate Anthropic models with Open WebUI.
 
 ## Building a Proxy Server
 

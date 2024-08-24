@@ -191,6 +191,6 @@ Open WebUI. This setup is relatively straightforward and serves as a
 cost-effective alternative to the subscription-based Pro version of Claude.ai.
 
 You can find the full source code at
-https://github.com/wangxj03/ai-design-patterns/tree/main/anthropic-webui.
+https://github.com/wangxj03/ai-cookbook/tree/main/anthropic-webui.
 
 Happy coding!

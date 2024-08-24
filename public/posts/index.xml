@@ -6,8 +6,16 @@
     <description>Recent content in Posts on Xiaojing&#39;s Blog</description>
     <generator>Hugo -- 0.133.0</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 18 Aug 2024 17:25:22 -0700</lastBuildDate>
+    <lastBuildDate>Fri, 23 Aug 2024 22:41:52 -0700</lastBuildDate>
     <atom:link href="https://example.org/posts/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Using Anthropic Models with Open WebUI</title>
+      <link>https://example.org/posts/2024-08-23-anthropic-webui/</link>
+      <pubDate>Fri, 23 Aug 2024 22:41:52 -0700</pubDate>
+      <guid>https://example.org/posts/2024-08-23-anthropic-webui/</guid>
+      <description>When it comes to code generation and critique, I&amp;rsquo;ve found Anthropic&amp;rsquo;s models to be my top choice. In my experience, they consistently deliver higher quality outputs compared to OpenAI&amp;rsquo;s GPT-4. Claude.ai, the official WebUI for Anthropic models, provides a streamlined interface for interacting with these models. However, it has a significant drawback: strict rate limits that can be quickly reached.
+To overcome this rate limit of claude.ai or chatgpt.com, many developers turn to open-source solutions.</description>
+    </item>
     <item>
       <title>AI Design Pattern: Guardrails</title>
       <link>https://example.org/posts/2024-08-18-guardrails/</link>

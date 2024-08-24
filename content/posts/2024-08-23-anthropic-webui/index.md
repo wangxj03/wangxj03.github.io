@@ -182,15 +182,33 @@ def main(argv: Any) -> None:
     )
 ```
 
-## Demo Time
+## Configuring Open WebUI
+
+To connect the proxy server to Open WebUI, you'll need to configure two
+environment variables within the Open WebUI Docker container:
+
+- `OPENAI_API_BASE_URL`: Set this to the proxy server's address. If the proxy
+  server is running locally, use http://localhost:8000/v1.
+
+- `OPENAI_API_KEY`: Assign any arbitrary value to this variable. Open WebUI
+  requires this environment variable, but the actual API key isn't used.
+
+After setting these variables, start the Open WebUI container alongside the
+proxy server. Once everything is up and running, head over to
+http://localhost:3000 in your browser. You should now see Anthropic models
+listed in the model selection dropdown, allowing you to leverage their
+capabilities directly within Open WebUI.
 
 ![](webui.png)
 
-With a bit of ingenuity, we can successfully integrate Anthropic models with
-Open WebUI. This setup is relatively straightforward and serves as a
-cost-effective alternative to the subscription-based Pro version of Claude.ai.
+## Wrapping Up
 
-You can find the full source code at
+With a bit of ingenuity, we've successfully integrated Anthropic models into
+Open WebUI. This setup provides a flexible and cost-effective alternative to the
+subscription-based Pro version of Claude.ai, offering enhanced functionality
+without the typical rate limit constraints.
+
+For those interested in exploring further, the full source code is available at
 https://github.com/wangxj03/ai-cookbook/tree/main/anthropic-webui.
 
 Happy coding!

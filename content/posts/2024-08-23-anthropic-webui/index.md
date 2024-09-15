@@ -21,45 +21,40 @@ ShowRssButtonInSectionTermList: false
 UseHugoToc: true
 ---
 
-When it comes to code generation and critique, I've found Anthropic's models to
-be my top choice. In my experience, they consistently deliver higher quality
-outputs compared to OpenAI's GPT-4. Claude.ai, the official WebUI for Anthropic
-models, provides a streamlined interface for interacting with these models.
-However, it has a significant drawback: strict rate limits that can be quickly
+When it comes to code generation and critique, I've found Anthropic's models to be my top choice. In
+my experience, they consistently deliver higher quality outputs compared to OpenAI's GPT-4.
+Claude.ai, the official WebUI for Anthropic models, provides a streamlined interface for interacting
+with these models. However, it has a significant drawback: strict rate limits that can be quickly
 reached.
 
-To overcome this rate limit of claude.ai or chatgpt.com, many developers turn to
-open-source solutions. [Open WebUI](https://docs.openwebui.com/) is a popular
-choice for OpenAI and Ollama models, but it doesn't natively support Anthropic
-models. This doesn't mean we're out of options. In this post, I'll walk you
-through a solution to integrate Anthropic models with Open WebUI.
+To overcome this rate limit of claude.ai or chatgpt.com, many developers turn to open-source
+solutions. [Open WebUI](https://docs.openwebui.com/) is a popular choice for OpenAI and Ollama
+models, but it doesn't natively support Anthropic models. This doesn't mean we're out of options. In
+this post, I'll walk you through a solution to integrate Anthropic models with Open WebUI.
 
 ## Building a Proxy Server
 
-Since Open WebUI supports OpenAI models, we can create a proxy server that
-translates OpenAI chat completion requests into Anthropic message requests and
-then converts the responses back to the OpenAI format. Essentially, the proxy
-server acts as a bridge between Open WebUI and Anthropic's models.
+Since Open WebUI supports OpenAI models, we can create a proxy server that translates OpenAI chat
+completion requests into Anthropic message requests and then converts the responses back to the
+OpenAI format. Essentially, the proxy server acts as a bridge between Open WebUI and Anthropic's
+models.
 
 To achieve this, we need to implement three key endpoints in the proxy server:
 
-- **Health check endpoint** (`/v1`): This endpoint ensures that the proxy server
-  is up and running. Open WebUI periodically pings it to confirm server
-  availability.
+- **Health check endpoint** (`/v1`): This endpoint ensures that the proxy server is up and running.
+  Open WebUI periodically pings it to confirm server availability.
 
-- **Model listing endpoint** (`/v1/models`): This endpoint lists the models
-  accessible to the server. Open WebUI uses this information to populate its
-  model selection dropdown.
+- **Model listing endpoint** (`/v1/models`): This endpoint lists the models accessible to the
+  server. Open WebUI uses this information to populate its model selection dropdown.
 
-- **Chat completion endpoint** (`/v1/chat`): This endpoint handles chat
-  completions and must support both non-streaming and streaming responses:
+- **Chat completion endpoint** (`/v1/chat`): This endpoint handles chat completions and must support
+  both non-streaming and streaming responses:
 
-  - **Non-Streaming**: This mode generates a conversation title based on the
-    initial user message, which Open WebUI displays in a side panel for easy
-    navigation of conversation history.
+  - **Non-Streaming**: This mode generates a conversation title based on the initial user message,
+    which Open WebUI displays in a side panel for easy navigation of conversation history.
 
-  - **Streaming**: This mode streams responses back to the user in chunks as
-    they are generated, mimicking the experience on claude.ai or chatgpt.com.
+  - **Streaming**: This mode streams responses back to the user in chunks as they are generated,
+    mimicking the experience on claude.ai or chatgpt.com.
 
 Below is an example implementation of these endpoints using FastAPI:
 
@@ -101,9 +96,8 @@ def create_app(client: AsyncAnthropic) -> FastAPI:
     return app
 ```
 
-The `create_chat_completion` and `create_chat_completion_stream` functions
-encapsulate the core logic for generating chat completions in non-streaming and
-streaming modes, respectively.
+The `create_chat_completion` and `create_chat_completion_stream` functions encapsulate the core
+logic for generating chat completions in non-streaming and streaming modes, respectively.
 
 ```python
 async def create_chat_completion(
@@ -184,29 +178,32 @@ def main(argv: Any) -> None:
 
 ## Configuring Open WebUI
 
-To connect the proxy server to Open WebUI, you'll need to configure two
-environment variables within the Open WebUI Docker container:
+To connect the proxy server to Open WebUI, you'll need to configure two environment variables within
+the Open WebUI Docker container:
 
-- `OPENAI_API_BASE_URL`: Set this to the proxy server's address. If the proxy
-  server is running locally, use http://localhost:8000/v1.
+- `OPENAI_API_BASE_URL`: Set this to the proxy server's address. If the proxy server is running
+  locally, use http://localhost:8000/v1.
 
-- `OPENAI_API_KEY`: Assign any arbitrary value to this variable. Open WebUI
-  requires this environment variable, but the actual API key isn't used.
+- `OPENAI_API_KEY`: Assign any arbitrary value to this variable. Open WebUI requires this
+  environment variable, but the actual API key isn't used.
 
-After setting these variables, start the Open WebUI container alongside the
-proxy server. Once everything is up and running, head over to
-http://localhost:3000 in your browser. You should now see Anthropic models
-listed in the model selection dropdown, allowing you to leverage their
-capabilities directly within Open WebUI.
+After setting these variables, start the Open WebUI container alongside the proxy server. Once
+everything is up and running, head over to http://localhost:3000 in your browser. You should now see
+Anthropic models listed in the model selection dropdown, allowing you to leverage their capabilities
+directly within Open WebUI.
 
-![](webui.png)
+![](webui_text.png)
+
+You can also upload an image file and use Anthropic models' vision capability to understand and
+analyze image content.
+
+![](webui_vision.png)
 
 ## Wrapping Up
 
-With a bit of ingenuity, we've successfully integrated Anthropic models into
-Open WebUI. This setup provides a flexible and cost-effective alternative to the
-subscription-based Pro version of Claude.ai, offering enhanced functionality
-without the typical rate limit constraints.
+With a bit of ingenuity, we've successfully integrated Anthropic models into Open WebUI. This setup
+provides a flexible and cost-effective alternative to the subscription-based Pro version of
+Claude.ai, offering enhanced functionality without the typical rate limit constraints.
 
 For those interested in exploring further, the full source code is available at
 https://github.com/wangxj03/ai-cookbook/tree/main/anthropic-webui.

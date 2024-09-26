@@ -14,7 +14,7 @@
       <pubDate>Tue, 24 Sep 2024 23:01:05 -0700</pubDate>
       <guid>http://localhost:1313/posts/2024-09-24-code-search/</guid>
       <description>Recently, there has been significant buzz around Cursor. One of its key features is codebase index, which transforms Cursor into a context-aware coding assistant. Behind the scenes, the codebase indexing works as follows based on this post:
-Cursor chunks the files in your codebase into small chunks locally. These chunks are then sent to Cursor&amp;rsquo;s server to create embeddings either with OpenAI&amp;rsquo;s embedding API or by a custom embedding model. The embeddings are stored in a remote vector DB, along wtih starting / ending line numbers and the relative file path.</description>
+Cursor chunks the files in your codebase into small chunks locally. These chunks are then sent to Cursor&amp;rsquo;s server to create embeddings either with OpenAI&amp;rsquo;s embedding API or by a custom embedding model. The embeddings are stored in a remote vector database, along wtih starting / ending line numbers and the relative file path.</description>
     </item>
     <item>
       <title>Using Anthropic Models with Open WebUI</title>

@@ -38,15 +38,27 @@ The ingestion pipeline consists of three main steps: splitting source code files
 
 ### Splitting
 
-Why splitting source code files? There are two main reasons:
+Why splitting source code files? There are two primary reasons:
 
-1. **Model Input Limit**: All embedding models have a token limit for input text. For example, OpenAI's [text-embedding-3-small] model has a limit of 8192 tokens. If a code snippet is too long, it needs to be split into smaller chunks.
+1. **Model Input Limit**: All embedding models have a token limit for input text. For instance, OpenAI's [text-embedding-3-small] model has a token limit of 8192. If a code snippet exceeds this limit, it must be split into smaller chunks.
 
-2. **Semantic Granularity**: Smaller chunks help capture more fine-grained semantics. Long code snippets may contain multiple functions or classes. By splitting, each chunk focuses on a distinct piece of code, which can help improve the quality of retrieval.
+2. **Semantic Granularity**: Breaking code into smaller chunks allows for more precise semantic understanding. A long code snippet may contain multiple functions or classes. By splitting the code, each chunk can focus on a specific piece, improving the relevance and quality of code retrieval.
 
-We use [code-splitter](https://github.com/wangxj03/code-splitter) (shameless plug: I am the author) to chunk source code files. code-splitter is a Rust library that provides a fast and efficient way to split code into smaller chunks. It utilizes [tree-sitter](https://crates.io/crates/tree-sitter) to parse code into an Abstract Syntax Tree (AST) and merges sibling nodes to create the largest possible chunks without exceeding the chunk limit.
+To achieve this, one can simply split based on characters, words, or lines, as long as the chunk size remains below the model's token limit. However, a more sophisticated approach is to split based on tokens directly. Two common tokenizers used in the NLP community are:
 
-The gist below shows the use of code-splitter [Python bindings](https://pypi.org/project/code-splitter/) to walk through a directory and split Rust files. The choice of `TiktokenSplitter` is to match the tokenizer used by OpenAI's embedding models.
+- [tiktoken](https://github.com/openai/tiktoken): A fast Byte Pair Encoding (BPE) tokenizer for OpenAI models.
+
+- [tokenizers](https://github.com/huggingface/tokenizers): Developed by Huggingface to use in the Transformers ecosystem. We choose to use the tiktoken for use with OpenAI's embedding models.
+
+#### Splitting Strategies
+
+A navie strategy is to split code snippets based on a fixed number of tokens. This is obviously not ideal because it may cut off in the middle of a semantic code block such as a function or a class. It is desirable for a more intelligent splitter that understands the code's structure and splits at the appropriate semantic boundaries. One such approach is Langchain's [recursive text splitter](https://python.langchain.com/docs/how_to/recursive_text_splitter/). It splits text using top-level delimiters (sunch as class and function definitions) and then concatenates chunks as long as they stay within the character limit. However, this approach requires language-specific delimiters, and its performance suffers with languages that use curly braces heavily. Handling these edge cases can become cumbersome.
+
+A more innovative and elegant approach is to parse the code into an Abstract Syntax Tree (AST) and split based on its structure, as detailed in the blog [post](https://docs.sweep.dev/blogs/chunking-2m-files). By traversing the AST in a depth-first fashion, the code can be split into sub-trees that fit within the token limit. To avoid generating too many small chunks, sibling nodes can be merged into larger chunks, provided they stay within the token constraint. LlamaIndex also provides a cleaner Python implementation of this approach in its [CodeSplitter](https://docs.llamaindex.ai/en/v0.10.19/api/llama_index.core.node_parser.CodeSplitter.html) function. Both implementations utilize [tree-sitter](https://crates.io/crates/tree-sitter) for AST parsing. tree-sitter supports a wide range of [languages], making it a more generalizable solution.
+
+#### Our Approach
+
+We use [code-splitter](https://github.com/wangxj03/code-splitter) (shameless plug: I' the author) which is a Rust re-implementation for added efficiency. The gist below shows the use of its [Python bindings](https://pypi.org/project/code-splitter/) to walk through a directory and split Rust files. The choice of `TiktokenSplitter` is to for compatibility with OpenAI embedding models.
 
 ```python
 from code_splitter import Language, TiktokenSplitter
@@ -83,6 +95,9 @@ def walk(dir: str, max_size: int) -> Generator[dict[str, Any], None, None]:
 ### Creating Embeddings
 
 We use OpenAI's [Embeddings API](https://platform.openai.com/docs/guides/embeddings) to create embeddings. To speed up the process, we batch multiple chunks into a single request. Alternatively, one can also use the [Batch API](https://platform.openai.com/docs/guides/batch/overview) to create embeddings for a large codebase.
+
+TODO: why not other embeddings
+TODO: alternatives
 
 ### Indexing the Embeddings
 

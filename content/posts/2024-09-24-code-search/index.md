@@ -28,7 +28,11 @@ Recently, there has been significant buzz around Cursor. One of its key features
 
 The embeddings are stored in a remote vector database, along wtih starting / ending line numbers and the relative file path. When you use @Codebase or ⌘ Enter to ask questions about your codebase, Cursor will retrieve the relevant code chunks from the vector database as context in the LLM calls to generate the answer. In other words, Cursor implements a standard Retrieval-Augmented Generation (RAG) model with the codebase index as the retrieval mechanism.
 
+## Architecture
+
 In this post, we replicate the codebase indexing feature and demostrate it by building a semantic code search application. This process involves two key components: an offline ingestion pipeline to store code embeddings in a vector database, and a code search server that performs semantic retrieval from this database.
+
+![](code_search.svg)
 
 ## Ingestion Pipeline
 

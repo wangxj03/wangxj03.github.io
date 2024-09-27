@@ -94,13 +94,45 @@ def walk(dir: str, max_size: int) -> Generator[dict[str, Any], None, None]:
 
 ### Creating Embeddings
 
-We use OpenAI's [Embeddings API](https://platform.openai.com/docs/guides/embeddings) to create embeddings. To speed up the process, we batch multiple chunks into a single request. Alternatively, one can also use the [Batch API](https://platform.openai.com/docs/guides/batch/overview) to create embeddings for a large codebase.
+Qdrant's authors selected the open-source [all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) embedding model for their [code search demo](https://github.com/qdrant/demo-code-search). Since this model is primarily trained on natural language tasks, they created a synthetic text-like representation of the code, including key elements like function names, signatures, and docstrings, which were then passed to the model.
 
-TODO: why not other embeddings
-TODO: alternatives
+We found this approach cumbersome and opted for OpenAI’s [text-embedding-3-small](https://platform.openai.com/docs/guides/embeddings) model instead. While this model isn’t specifically designed for code, it still performs effectively on code-related tasks. Alternatively, embedding models tailored for code, such as Microsoft’s [unixcoder-base](https://huggingface.co/microsoft/unixcoder-base) or Voyage AI’s [voyage-code-2](https://blog.voyageai.com/2024/01/23/voyage-code-2-elevate-your-code-retrieval/), offer advantages like larger context lengths and better semantic retrieval for code.
 
 ### Indexing the Embeddings
 
-We use Qdrant as the vector database to store the embeddings. Qdrant is an open-source vector database that supports fast and efficient similarity search.
+Similar to the original demo, we utilize Qdrant to index the code chunk embeddings. Qdrant, an open-source vector database written in Rust, is designed to handle high-dimensional vectors for performance and massive-scale AI applications.
+
+In the code snippet below, we also store metadata for each code chunk, such as file path, start and end line numbers, and chunk size. This metadata allows for displaying relevant information during search results on the frontend.
+
+```python
+import pandas as pd
+from qdrant_client import QdrantClient
+from qdrant_client.models import Distance, PointStruct, VectorParams
+
+# Load code chunk embeddings from a Parquet file
+df = pd.read_parquet("/data/code_embeddings.parquet")
+
+# Initialize Qdrant client
+client = QdrantClient("http://localhost:6333")
+
+# Create or replace the collection with specific vector parameters
+client.recreate_collection(
+    collection_name="qdrant-code",
+    vectors_config=VectorParams(size=1536, distance=Distance.COSINE),
+)
+
+# Convert embeddings and metadata into Qdrant-compatible points
+points = [
+    PointStruct(
+        id=idx,
+        vector=row["embedding"].tolist(),
+        payload=row.drop(["embedding"]).to_dict(),
+    )
+    for idx, row in df.iterrows()
+]
+
+# Upload points to the Qdrant collection
+client.upload_points("qdrant-code", points)
+```
 
 ## Semantic Code Search

@@ -57,7 +57,7 @@ Splitting source code files serves two primary purposes:
 
 2. **Enhancing Semantic Granularity**: Smaller chunks offer more precise semantic understanding. By focusing on specific parts of the code, we improve retrieval relevance and quality.
 
-#### Splitting Strategies
+### Splitting Strategies
 
 While you could split code based on characters, words, or lines, a more sophisticated approach is to split based on tokens. We'll use [tiktoken](https://github.com/openai/tiktoken), a fast Byte Pair Encoding (BPE) tokenizer compatible with OpenAI models.
 

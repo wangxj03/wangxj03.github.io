@@ -1,6 +1,6 @@
 ---
 title: "Semantic Code Search"
-date: 2024-09-24T23:01:05-07:00
+date: 2024-09-27T23:01:05-07:00
 tags: ["AI"]
 author: "Xiaojing Wang"
 showToc: true
@@ -21,44 +21,44 @@ ShowRssButtonInSectionTermList: false
 UseHugoToc: true
 ---
 
-Recently, there has been significant buzz around Cursor. One of its key features is [codebase index](https://docs.cursor.com/context/codebase-indexing), which transforms Cursor into a context-aware coding assistant. Behind the scenes, the codebase indexing works as follows based on this [post](https://forum.cursor.com/t/codebase-indexing/36):
+There’s been a lot of buzz lately about Cursor. One of its key features is [codebase indexing](https://docs.cursor.com/context/codebase-indexing), which turns Cursor into a context-aware coding assistant. This feature, as explained in this [post](https://forum.cursor.com/t/codebase-indexing/36), works as follows:
 
-- Cursor chunks the files in your codebase into small chunks locally.
-- These chunks are then sent to Cursor's server to create embeddings either with OpenAI's embedding API or by a custom embedding model.
+- Cursor chunks the files from your codebase into small chunks locally.
+- These chunks are then sent to Cursor's server, where embeddings are created using either OpenAI's embedding API or a custom embedding model.
 
-The embeddings are stored in a remote vector database, along wtih starting / ending line numbers and the relative file path. When you use @Codebase or ⌘ Enter to ask questions about your codebase, Cursor will retrieve the relevant code chunks from the vector database as context in the LLM calls to generate the answer. In other words, Cursor implements a standard Retrieval-Augmented Generation (RAG) model with the codebase index as the retrieval mechanism.
+The embeddings, along with start/end line numbers and file paths, are stored in a remote vector database. When you use @Codebase or ⌘ Enter to ask about your codebase, Cursor retrieves the relevant code chunks from the vector database to provide context for large language model (LLM) calls. Essentially, Cursor uses a standard Retrieval-Augmented Generation (RAG) model, with the codebase index acting as the retrieval mechanism.
 
-In this post, we replicate the codebase indexing feature and demostrate it by building a semantic code search application. This application consists of two key components: an offline ingestion pipeline to index code embeddings in a vector database, and a code search server that performs semantic retrieval from this database.
+In this post, we'll replicate the codebase indexing feature and demostrate it by building a semantic code search application. This application includes two main components: an offline ingestion pipeline to index code embeddings into a vector database, and a code search server that performs semantic retrieval from this database. We draw heavy inspiration from Qdrant’s [code search demo](https://github.com/qdrant/demo-code-search/tree/master) but provide our own implementations for the ingestion pipeline and code search backend.
 
 ## Ingestion Pipeline
 
-The ingestion pipeline consists of three main steps: splitting source code files into chunks, creating embeddings for these chunks, and indexing these embeddings in a vector database.
-
-[OpenAI Embeddings API](https://platform.openai.com/docs/guides/embeddings) to create embeddings, and [Qdrant](https://github.com/qdrant/qdrant) as the vector DB for indexing and retrieval. We draw inspiration from Qdrant's own [demo](https://github.com/qdrant/demo-code-search/tree/master) and reuse its frontend code. We will provide our own implementation for the ingestion and backend.
+The ingestion pipeline has three main steps: splitting source code into chunks, creating embeddings, and indexing them into a vector database.
 
 ### Splitting
 
 Why splitting source code files? There are two primary reasons:
 
-1. **Model Input Limit**: All embedding models have a token limit for input text. For instance, OpenAI's [text-embedding-3-small] model has a token limit of 8192. If a code snippet exceeds this limit, it must be split into smaller chunks.
+1. **Model Input Limit**: All embedding models have token limits. OpenAI's [text-embedding-3-small](https://platform.openai.com/docs/guides/embeddings) model, for example, has a token limit of 8192. If a code snippet exceeds this limit, it needs to be broken down.
 
-2. **Semantic Granularity**: Breaking code into smaller chunks allows for more precise semantic understanding. A long code snippet may contain multiple functions or classes. By splitting the code, each chunk can focus on a specific piece, improving the relevance and quality of code retrieval.
+2. **Semantic Granularity**: Smaller chunks offer more precise semantic understanding. Large code snippets often contain multiple functions or classes, and by splitting the code, each chunk can focus on a specific part, enhancing retrieval relevance and quality.
 
-To achieve this, one can simply split based on characters, words, or lines, as long as the chunk size remains below the model's token limit. However, a more sophisticated approach is to split based on tokens directly. Two common tokenizers used in the NLP community are:
+You could split code based on characters, words, or lines, as long as the resulting chunks stay within the token limit. However, a more advanced method is to split based on tokens. Two common tokenizers in the NLP community are:
 
 - [tiktoken](https://github.com/openai/tiktoken): A fast Byte Pair Encoding (BPE) tokenizer for OpenAI models.
 
-- [tokenizers](https://github.com/huggingface/tokenizers): Developed by Huggingface to use in the Transformers ecosystem. We choose to use the tiktoken for use with OpenAI's embedding models.
+- [tokenizers](https://github.com/huggingface/tokenizers): Developed by Huggingface for the Transformers ecosystem.
+
+We use Tiktoken here for compatibility with OpenAI's embedding models.
 
 #### Splitting Strategies
 
-A navie strategy is to split code snippets based on a fixed number of tokens. This is obviously not ideal because it may cut off in the middle of a semantic code block such as a function or a class. It is desirable for a more intelligent splitter that understands the code's structure and splits at the appropriate semantic boundaries. One such approach is Langchain's [recursive text splitter](https://python.langchain.com/docs/how_to/recursive_text_splitter/). It splits text using top-level delimiters (sunch as class and function definitions) and then concatenates chunks as long as they stay within the character limit. However, this approach requires language-specific delimiters, and its performance suffers with languages that use curly braces heavily. Handling these edge cases can become cumbersome.
+A naive strategy is to split code snippets based on a fixed token count, but this can cut off code blocks like functions or classes mid-way. A more effective approach is to use an intelligent splitter that understands code structure, such as Langchain's [recursive text splitter](https://python.langchain.com/docs/how_to/recursive_text_splitter/). This method uses high-level delimiters (e.g., class and function definitions) to split at the appropriate semantic boundaries and concatenates chunks while staying within token limits. However, this approach is language-specific and struggles with languages that use curly braces.
 
-A more innovative and elegant approach is to parse the code into an Abstract Syntax Tree (AST) and split based on its structure, as detailed in the blog [post](https://docs.sweep.dev/blogs/chunking-2m-files). By traversing the AST in a depth-first fashion, the code can be split into sub-trees that fit within the token limit. To avoid generating too many small chunks, sibling nodes can be merged into larger chunks, provided they stay within the token constraint. LlamaIndex also provides a cleaner Python implementation of this approach in its [CodeSplitter](https://docs.llamaindex.ai/en/v0.10.19/api/llama_index.core.node_parser.CodeSplitter.html) function. Both implementations utilize [tree-sitter](https://crates.io/crates/tree-sitter) for AST parsing. tree-sitter supports a wide range of [languages], making it a more generalizable solution.
+A more elegant solution is to split the code based on its Abstract Syntax Tree (AST) structure, as outlined in this [blog post](https://docs.sweep.dev/blogs/chunking-2m-files). By traversing the AST depth-first, you can split the code into sub-trees that fit within the token limits. To avoid creating too many small chunks, sibling nodes can be merged into larger chunks as long as they stay under the token constraint. LlamaIndex offers a cleaner Python implementation in its [CodeSplitter](https://docs.llamaindex.ai/en/v0.10.19/api/llama_index.core.node_parser.CodeSplitter.html) function. Both implementations use [tree-sitter](https://crates.io/crates/tree-sitter) for AST parsing, which supports a wide range of languages.
 
 #### Our Approach
 
-We use [code-splitter](https://github.com/wangxj03/code-splitter) (shameless plug: I' the author) which is a Rust re-implementation for added efficiency. The gist below shows the use of its [Python bindings](https://pypi.org/project/code-splitter/) to walk through a directory and split Rust files. The choice of `TiktokenSplitter` is to for compatibility with OpenAI embedding models.
+We use [code-splitter](https://github.com/wangxj03/code-splitter) (shameless plug: I' the author!), a Rust re-implementation for added efficiency. Below shows an example of using its [Python bindings](https://pypi.org/project/code-splitter/) to walk through a directory and split Rust files. We use `TiktokenSplitter` to ensure compatibility with OpenAI embedding models.
 
 ```python
 from code_splitter import Language, TiktokenSplitter
@@ -94,34 +94,30 @@ def walk(dir: str, max_size: int) -> Generator[dict[str, Any], None, None]:
 
 ### Creating Embeddings
 
-Qdrant's authors selected the open-source [all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) embedding model for their [code search demo](https://github.com/qdrant/demo-code-search). Since this model is primarily trained on natural language tasks, they created a synthetic text-like representation of the code, including key elements like function names, signatures, and docstrings, which were then passed to the model.
+Qdrant's authors used the open-source [all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) embedding model in their demo. Since this model is primarily trained on natural language tasks, they created a synthetic text-like representation of the code and passed it to the model. The representation captures key elements like function names, signatures, and docstrings.
 
-We found this approach cumbersome and opted for OpenAI’s [text-embedding-3-small](https://platform.openai.com/docs/guides/embeddings) model instead. While this model isn’t specifically designed for code, it still performs effectively on code-related tasks. Alternatively, embedding models tailored for code, such as Microsoft’s [unixcoder-base](https://huggingface.co/microsoft/unixcoder-base) or Voyage AI’s [voyage-code-2](https://blog.voyageai.com/2024/01/23/voyage-code-2-elevate-your-code-retrieval/), offer advantages like larger context lengths and better semantic retrieval for code.
+We opted to use OpenAI’s [text-embedding-3-small](https://platform.openai.com/docs/guides/embeddings) model instead, which, while not specifically trained on code, still performs reasonable well on code-related tasks. Alternatively, models like Microsoft’s [unixcoder-base](https://huggingface.co/microsoft/unixcoder-base) or Voyage AI’s [voyage-code-2](https://blog.voyageai.com/2024/01/23/voyage-code-2-elevate-your-code-retrieval/) provide longer context window and are purposedly trained for code-related tasks.
 
 ### Indexing
 
-Similar to the original demo, we utilize Qdrant to index the code chunk embeddings. Qdrant, an open-source vector database written in Rust, is designed to handle high-dimensional vectors for performance and massive-scale AI applications.
+We use [Qdrant](https://github.com/qdrant/qdrant) to index the code chunk embeddings, just like in the original demo. Qdrant, an open-source vector database written in Rust, is optimized to handle high-dimensional vectors at scale.
 
-In the code snippet below, we also store metadata for each code chunk, such as file path, start and end line numbers, and chunk size. This metadata allows for displaying relevant information during search results on the frontend.
+In the snippet below, we also store metadata such as file paths, start/end line numbers, and chunk sizes. This metadata enables the frontend to display relevant information during search results.
 
 ```python
 import pandas as pd
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
-# Load code chunk embeddings from a Parquet file
 df = pd.read_parquet("/data/code_embeddings.parquet")
 
-# Initialize Qdrant client
 client = QdrantClient("http://localhost:6333")
 
-# Create or replace the collection with specific vector parameters
 client.recreate_collection(
     collection_name="qdrant-code",
     vectors_config=VectorParams(size=1536, distance=Distance.COSINE),
 )
 
-# Convert embeddings and metadata into Qdrant-compatible points
 points = [
     PointStruct(
         id=idx,
@@ -131,32 +127,29 @@ points = [
     for idx, row in df.iterrows()
 ]
 
-# Upload points to the Qdrant collection
 client.upload_points("qdrant-code", points)
 ```
 
-In addition to the code chunk embeddings, we also index code files into a separate Qdrant collection for retrieving full file content during search results.
+Additionally, we index entire code files in a separate Qdrant collection to enable full-file retrieval during search results.
 
 ## Semantic Code Search
 
-Now we have the Qdrant vector database populated with code chunk embeddings and file metadata. The next step is to build a code search server that interacts with the database to retrieve relevant code snippets based on a query. The overall architecture of the code search application is as follows:
+With the Qdrant database populated with code chunk embeddings and metadata, we can now build a code search server. The architecture of our search application is as follows:
 
 ![](code_search_design.svg)
 
-The backend is built with FastAPI and handles REST requests to interact with the Qdrant vector database. It exposes two endpoints:
+The backend, built with [FastAPI](https://github.com/fastapi/fastapi), handles REST requests and interacts with the Qdrant vector database. It exposes two endpoints:
 
-- **`GET /api/search`**: Searches for code snippets based on a query.
-- **`GET /api/file`**: Fetches the full content of a file based on its path.
+- **`GET /api/search`**: Search for code snippets based on a query.
+- **`GET /api/file`**: Fetch the full content of a file based on its path.
 
-The frontend [React code](https://github.com/qdrant/demo-code-search/blob/master/frontend) is reused from Qdrant's code search demo.
-
-A sample query with the UI is shown below:
+We reuse the [React frontend](https://github.com/qdrant/demo-code-search/blob/master/frontend) from Qdrant's demo. Below is an example query using the UI:
 
 ![](code_search_example.svg)
 
 ## Wrapping Up
 
-We’ve successfully developed a semantic code search application to showcase Cursor's codebase indexing capabilities. You now have complete control over each component—from splitting code snippets and generating embeddings to indexing them in a vector database and setting up a server to manage interactions with the database. This provides a flexible yet extensible structure for building more customized GenAI applications.
+We’ve built a semantic code search application, replicating Cursor’s codebase indexing functionality. This solution gives you full control over each component—from splitting code snippets and generating embeddings to indexing them in a vector database and building a search server. It also provides a flexible, extensible foundation for creating more advanced GenAI applications.
 
-For those interested in exploring further, feel free to play around with the full source code at
+Feel free to check out the complete source code at:
 https://github.com/wangxj03/ai-cookbook/tree/main/code-search.

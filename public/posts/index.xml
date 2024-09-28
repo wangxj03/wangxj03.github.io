@@ -2,25 +2,35 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>Posts on Xiaojing&#39;s Blog</title>
-    <link>https://example.org/posts/</link>
+    <link>http://localhost:1313/posts/</link>
     <description>Recent content in Posts on Xiaojing&#39;s Blog</description>
     <generator>Hugo -- 0.133.0</generator>
     <language>en-us</language>
-    <lastBuildDate>Fri, 23 Aug 2024 22:41:52 -0700</lastBuildDate>
-    <atom:link href="https://example.org/posts/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Tue, 24 Sep 2024 23:01:05 -0700</lastBuildDate>
+    <atom:link href="http://localhost:1313/posts/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Semantic Code Search</title>
+      <link>http://localhost:1313/posts/2024-09-24-code-search/</link>
+      <pubDate>Tue, 24 Sep 2024 23:01:05 -0700</pubDate>
+      <guid>http://localhost:1313/posts/2024-09-24-code-search/</guid>
+      <description>There’s been a lot of buzz lately about Cursor, particularly its codebase indexing feature. This feature turns Cursor into a context-aware coding assistant. But how does it work, and can we build something similar? Let&amp;rsquo;s dive in.
+Understanding Cursor&amp;rsquo;s Magic Cursor&amp;rsquo;s codebase indexing, as explained in this forum post, works as follows:
+It chunks your codebase files locally.
+These chunks are then sent to Cursor&amp;rsquo;s server, where embeddings are created using either OpenAI&amp;rsquo;s embedding API or a custom embedding model.</description>
+    </item>
     <item>
       <title>Using Anthropic Models with Open WebUI</title>
-      <link>https://example.org/posts/2024-08-23-anthropic-webui/</link>
+      <link>http://localhost:1313/posts/2024-08-23-anthropic-webui/</link>
       <pubDate>Fri, 23 Aug 2024 22:41:52 -0700</pubDate>
-      <guid>https://example.org/posts/2024-08-23-anthropic-webui/</guid>
+      <guid>http://localhost:1313/posts/2024-08-23-anthropic-webui/</guid>
       <description>When it comes to code generation and critique, I&amp;rsquo;ve found Anthropic&amp;rsquo;s models to be my top choice. In my experience, they consistently deliver higher quality outputs compared to OpenAI&amp;rsquo;s GPT-4. Claude.ai, the official WebUI for Anthropic models, provides a streamlined interface for interacting with these models. However, it has a significant drawback: strict rate limits that can be quickly reached.
 To overcome this rate limit of claude.ai or chatgpt.com, many developers turn to open-source solutions.</description>
     </item>
     <item>
       <title>AI Design Pattern: Guardrails</title>
-      <link>https://example.org/posts/2024-08-18-guardrails/</link>
+      <link>http://localhost:1313/posts/2024-08-18-guardrails/</link>
       <pubDate>Sun, 18 Aug 2024 17:25:22 -0700</pubDate>
-      <guid>https://example.org/posts/2024-08-18-guardrails/</guid>
+      <guid>http://localhost:1313/posts/2024-08-18-guardrails/</guid>
       <description>Guardrails in AI are essential controls that ensure AI systems do not generate or process inappropriate content. These controls fall into two categories: input guardrails and output guardrails. Input guardrails filter out unsuitable data before it reaches the AI system, while output guardrails prevent the AI from producing harmful content.
 In this post, we’ll build on an example from the OpenAI cookbook to create a GenAI chatbot equipped with both input and output guardrails.</description>
     </item>

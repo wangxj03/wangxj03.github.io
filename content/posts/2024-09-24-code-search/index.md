@@ -28,7 +28,7 @@ There’s been a lot of buzz lately about Cursor. One of its key features is [co
 
 The embeddings, along with start/end line numbers and file paths, are stored in a remote vector database. When you use @Codebase or ⌘ Enter to ask about your codebase, Cursor retrieves the relevant code chunks from the vector database to provide context for large language model (LLM) calls. Essentially, Cursor uses a standard Retrieval-Augmented Generation (RAG) model, with the codebase index acting as the retrieval mechanism.
 
-In this post, we'll replicate the codebase indexing feature and demostrate it by building a semantic code search application. This application includes two main components: an offline ingestion pipeline to index code embeddings into a vector database, and a code search server that performs semantic retrieval from this database. We draw heavy inspiration from Qdrant’s [code search demo](https://github.com/qdrant/demo-code-search/tree/master) but provide our own implementations for the ingestion pipeline and code search backend.
+In this post, we’ll replicate the codebase indexing feature and build a semantic code search application. This application includes two main components: an offline ingestion pipeline to index code embeddings into a vector database, and a code search server that performs semantic retrieval from this database. We draw heavy inspiration from Qdrant’s [code search demo](https://github.com/qdrant/demo-code-search/tree/master) but provide our own implementations for the ingestion pipeline and code search backend.
 
 ## Ingestion Pipeline
 
@@ -58,7 +58,7 @@ A more elegant solution is to split the code based on its Abstract Syntax Tree (
 
 #### Our Approach
 
-We use [code-splitter](https://github.com/wangxj03/code-splitter) (shameless plug: I' the author!), a Rust re-implementation for added efficiency. Below shows an example of using its [Python bindings](https://pypi.org/project/code-splitter/) to walk through a directory and split Rust files. We use `TiktokenSplitter` to ensure compatibility with OpenAI embedding models.
+We use [code-splitter](https://github.com/wangxj03/code-splitter) (shameless plug: I'm the author!), a Rust re-implementation for added efficiency. Below shows an example of using its [Python bindings](https://pypi.org/project/code-splitter/) to walk through a directory and split Rust files. We use `TiktokenSplitter` to ensure compatibility with OpenAI embedding models.
 
 ```python
 from code_splitter import Language, TiktokenSplitter
@@ -96,7 +96,7 @@ def walk(dir: str, max_size: int) -> Generator[dict[str, Any], None, None]:
 
 Qdrant's authors used the open-source [all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) embedding model in their demo. Since this model is primarily trained on natural language tasks, they created a synthetic text-like representation of the code and passed it to the model. The representation captures key elements like function names, signatures, and docstrings.
 
-We opted to use OpenAI’s [text-embedding-3-small](https://platform.openai.com/docs/guides/embeddings) model instead, which, while not specifically trained on code, still performs reasonable well on code-related tasks. Alternatively, models like Microsoft’s [unixcoder-base](https://huggingface.co/microsoft/unixcoder-base) or Voyage AI’s [voyage-code-2](https://blog.voyageai.com/2024/01/23/voyage-code-2-elevate-your-code-retrieval/) provide longer context window and are purposedly trained for code-related tasks.
+We opted to use OpenAI’s [text-embedding-3-small](https://platform.openai.com/docs/guides/embeddings) model instead, which, while not specifically trained on code, still performs reasonable well on code-related tasks. Alternatively, models like Microsoft’s [unixcoder-base](https://huggingface.co/microsoft/unixcoder-base) or Voyage AI’s [voyage-code-2](https://blog.voyageai.com/2024/01/23/voyage-code-2-elevate-your-code-retrieval/) provide longer context window and are purposely trained for code-related tasks.
 
 ### Indexing
 

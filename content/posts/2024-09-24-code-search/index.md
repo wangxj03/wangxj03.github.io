@@ -28,11 +28,7 @@ Recently, there has been significant buzz around Cursor. One of its key features
 
 The embeddings are stored in a remote vector database, along wtih starting / ending line numbers and the relative file path. When you use @Codebase or ⌘ Enter to ask questions about your codebase, Cursor will retrieve the relevant code chunks from the vector database as context in the LLM calls to generate the answer. In other words, Cursor implements a standard Retrieval-Augmented Generation (RAG) model with the codebase index as the retrieval mechanism.
 
-## Architecture
-
-In this post, we replicate the codebase indexing feature and demostrate it by building a semantic code search application. This process involves two key components: an offline ingestion pipeline to store code embeddings in a vector database, and a code search server that performs semantic retrieval from this database.
-
-![](code_search.svg)
+In this post, we replicate the codebase indexing feature and demostrate it by building a semantic code search application. This application consists of two key components: an offline ingestion pipeline to index code embeddings in a vector database, and a code search server that performs semantic retrieval from this database.
 
 ## Ingestion Pipeline
 
@@ -102,7 +98,7 @@ Qdrant's authors selected the open-source [all-MiniLM-L6-v2](https://huggingface
 
 We found this approach cumbersome and opted for OpenAI’s [text-embedding-3-small](https://platform.openai.com/docs/guides/embeddings) model instead. While this model isn’t specifically designed for code, it still performs effectively on code-related tasks. Alternatively, embedding models tailored for code, such as Microsoft’s [unixcoder-base](https://huggingface.co/microsoft/unixcoder-base) or Voyage AI’s [voyage-code-2](https://blog.voyageai.com/2024/01/23/voyage-code-2-elevate-your-code-retrieval/), offer advantages like larger context lengths and better semantic retrieval for code.
 
-### Indexing the Embeddings
+### Indexing
 
 Similar to the original demo, we utilize Qdrant to index the code chunk embeddings. Qdrant, an open-source vector database written in Rust, is designed to handle high-dimensional vectors for performance and massive-scale AI applications.
 
@@ -139,4 +135,28 @@ points = [
 client.upload_points("qdrant-code", points)
 ```
 
+In addition to the code chunk embeddings, we also index code files into a separate Qdrant collection for retrieving full file content during search results.
+
 ## Semantic Code Search
+
+Now we have the Qdrant vector database populated with code chunk embeddings and file metadata. The next step is to build a code search server that interacts with the database to retrieve relevant code snippets based on a query. The overall architecture of the code search application is as follows:
+
+![](code_search_design.svg)
+
+The backend is built with FastAPI and handles REST requests to interact with the Qdrant vector database. It exposes two endpoints:
+
+- **`GET /api/search`**: Searches for code snippets based on a query.
+- **`GET /api/file`**: Fetches the full content of a file based on its path.
+
+The frontend [React code](https://github.com/qdrant/demo-code-search/blob/master/frontend) is reused from Qdrant's code search demo.
+
+A sample query with the UI is shown below:
+
+![](code_search_example.svg)
+
+## Wrapping Up
+
+We’ve successfully developed a semantic code search application to showcase Cursor's codebase indexing capabilities. You now have complete control over each component—from splitting code snippets and generating embeddings to indexing them in a vector database and setting up a server to manage interactions with the database. This provides a flexible yet extensible structure for building more customized GenAI applications.
+
+For those interested in exploring further, feel free to play around with the full source code at
+https://github.com/wangxj03/ai-cookbook/tree/main/code-search.

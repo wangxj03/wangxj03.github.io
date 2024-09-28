@@ -150,7 +150,7 @@ The backend, built with [FastAPI](https://github.com/fastapi/fastapi), handles R
 
 For the frontend, we'll reuse the [React code](https://github.com/qdrant/demo-code-search/blob/master/frontend) from Qdrant's demo. Below is an example of what a query might look like in the UI:
 
-![](code_search_example.svg)
+![](code_search_example.png)
 
 ## Wrapping Up
 

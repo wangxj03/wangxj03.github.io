@@ -65,7 +65,7 @@ A naive strategy is to split code based on a fixed token count, but this can cut
 
 A even more elegant solution is to split the code based on its Abstract Syntax Tree (AST) structure, as outlined in this [blog post](https://docs.sweep.dev/blogs/chunking-2m-files). By traversing the AST depth-first, it splits code into sub-trees that fit within the token limits. To avoid creating too many small chunks, sibling nodes are merged into larger chunks as long as they stay under the token limit. LlamaIndex offers a clean Python implementation in its [CodeSplitter](https://docs.llamaindex.ai/en/v0.10.19/api/llama_index.core.node_parser.CodeSplitter.html) function. Both implementations use [tree-sitter](https://crates.io/crates/tree-sitter) for AST parsing, which supports a wide range of languages.
 
-We use [code-splitter](https://github.com/wangxj03/code-splitter) (shameless plug: I'm the author!), a Rust re-implementation for added efficiency. Here is anan example of using its [Python bindings](https://pypi.org/project/code-splitter/) to split Rust files in a directory:
+We use [code-splitter](https://github.com/wangxj03/code-splitter) (shameless plug: I'm the author!), a Rust re-implementation for added efficiency. Here is an example of using its [Python bindings](https://pypi.org/project/code-splitter/) to split Rust files in a directory:
 
 ```python
 from code_splitter import Language, TiktokenSplitter

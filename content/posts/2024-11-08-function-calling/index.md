@@ -1,5 +1,5 @@
 ---
-title: "5 Tips to Improve Your Function Calling"
+title: "5 Tips to Improve Your LLM Function Calling"
 date: 2024-11-08T20:39:45-08:00
 tags: ["AI"]
 author: "Xiaojing Wang"
@@ -23,7 +23,7 @@ UseHugoToc: true
 
 Connecting Large Language Models (LLMs) to external tools through function calling is fundamental to creating effective Agentic AI workflows. In this post, we’ll cover five tips to enhance your experience with function calling.
 
-## Tip 1. Automatic Schema Generation
+## Tip 1: Automatic Schema Generation
 
 When calling LLMs, function definitions must be provided as available "tools". Each definition describes the function’s purpose and required parameters. OpenAI's [function calling guide](https://platform.openai.com/docs/guides/function-calling#step-2-describe-your-function-to-the-model-so-it-knows-how-to-call-it) shows how to define this schema in JSON format:
 
@@ -45,7 +45,7 @@ When calling LLMs, function definitions must be provided as available "tools". E
 }
 ```
 
-Manually creating schemas for simple functions is manageable. However, as functions grow in complexity, manually maintaining accurate schemas becomes challenging and error-prone—especially when managing multiple tools.
+Manually creating schemas for simple functions is manageable. However, as functions grow in complexity, maintaining accurate schemas becomes challenging and error-prone—especially when managing multiple tools.
 
 OpenAI's multi-agent framework, [Swarm](https://github.com/openai/swarm/tree/main), showcases an approach to use Python's `inspect` module to introspect the given Python function's parameters and build the schema dynamically.
 
@@ -109,7 +109,7 @@ def function_to_json(func) -> dict:
     }
 ```
 
-Since Swarm is primarily for educational purposes. The authors haven't really tried very hard to make the type mapping comprehensive. For example, it doesn't support enum parameters. However, the idea is sound and can be extended to support more types. Fro developers seeking type safety and more control over the schema, they can define a [pydantic](https://docs.pydantic.dev/latest/) model and build the schema from it. For example, the following code snippet shows schema generation for the `get_current_temperature` function:
+Since Swarm is primarily for educational purposes. The authors haven't really tried very hard to make the type mapping comprehensive. For example, it doesn't support enum parameters. However, the core idea is sound and can be extended. For developers seeking type safety and more control over the schema, they can define a [pydantic](https://docs.pydantic.dev/latest/) model and build the schema from it. For example, the following code snippet shows schema generation for the `get_current_temperature` function:
 
 ```python
 from typing import Literal
@@ -152,3 +152,53 @@ The output JSON matches the `parameters` field in the OpenAI Assistants function
   "type": "object"
 }
 ```
+
+Furthermore, we can combine both the `inspect` and `pydantic` approaches. The following code snippet leverages type annotations for type mapping and creates a pydantic model dynamically to build the schema.
+
+```python
+import inspect
+from typing import Any, Callable, Literal
+
+from openai.types.chat import ChatCompletionToolParam
+from openai.types.shared_params import FunctionDefinition
+from pydantic import create_model
+
+
+def get_tool_param(func: Callable[..., Any]) -> ChatCompletionToolParam:
+    # Get the signature of the function
+    sig = inspect.signature(func)
+
+    # Prepare a dictionary to store the fields for the Pydantic model
+    model_fields = {}
+
+    # Loop over the function's parameters and extract the type and default value
+    for param_name, param in sig.parameters.items():
+        # Get the type hint
+        param_type = (
+            param.annotation if param.annotation != inspect.Parameter.empty else Any
+        )
+
+        # Check if the parameter has a default value
+        if param.default != inspect.Parameter.empty:
+            model_fields[param_name] = (param_type, param.default)
+        else:
+            model_fields[param_name] = (param_type, ...)
+
+    # Dynamically create a Pydantic model
+    model_name = (
+        "".join(word.capitalize() for word in func.__name__.split("_")) + "Model"
+    )
+    model = create_model(model_name, **model_fields)
+    schema = model.model_json_schema()
+
+    return ChatCompletionToolParam(
+        function=FunctionDefinition(
+            name=func.__name__,
+            description=(func.__doc__ or "").strip(),
+            parameters=schema,
+        ),
+        type="function",
+    )
+```
+
+## Tip 2. Retry on Error

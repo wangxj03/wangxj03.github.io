@@ -1,5 +1,5 @@
 ---
-title: "5 Tips to Improve Your LLM Function Calling"
+title: "Schema Generation for Function Calling in Large Language Models"
 date: 2024-11-08T20:39:45-08:00
 tags: ["AI"]
 author: "Xiaojing Wang"
@@ -22,8 +22,6 @@ UseHugoToc: true
 ---
 
 Connecting Large Language Models (LLMs) to external tools through function calling is fundamental to creating effective Agentic AI workflows. In this post, we’ll cover five tips to enhance your experience with function calling.
-
-## Tip 1: Automatic Schema Generation
 
 When calling LLMs, function definitions must be provided as available "tools". Each definition describes the function’s purpose and required parameters. OpenAI's [function calling guide](https://platform.openai.com/docs/guides/function-calling#step-2-describe-your-function-to-the-model-so-it-knows-how-to-call-it) shows how to define this schema in JSON format:
 
@@ -200,5 +198,3 @@ def get_tool_param(func: Callable[..., Any]) -> ChatCompletionToolParam:
         type="function",
     )
 ```
-
-## Tip 2. Retry on Error

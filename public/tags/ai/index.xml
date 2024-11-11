@@ -6,8 +6,16 @@
     <description>Recent content in AI on Xiaojing&#39;s Blog</description>
     <generator>Hugo -- 0.133.0</generator>
     <language>en-us</language>
-    <lastBuildDate>Tue, 24 Sep 2024 23:01:05 -0700</lastBuildDate>
+    <lastBuildDate>Fri, 08 Nov 2024 20:39:45 -0800</lastBuildDate>
     <atom:link href="https://example.org/tags/ai/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Schema Generation for LLM Function Calling</title>
+      <link>https://example.org/posts/2024-11-08-schema-generation/</link>
+      <pubDate>Fri, 08 Nov 2024 20:39:45 -0800</pubDate>
+      <guid>https://example.org/posts/2024-11-08-schema-generation/</guid>
+      <description>The rise of Large Language Models (LLMs) has opened up exciting possibilities for automation and natural language interfaces. But to unlock their full potential, we need to connect them with external tools — and that&amp;rsquo;s where function calling comes in. In this post, we&amp;rsquo;ll explore how to streamline the process of defining these connections, moving from manual schema writing to automated solutions.
+Tool Function Definitions When connecting LLMs to external tools, we need two key components: the tool functions themselves and their definitions.</description>
+    </item>
     <item>
       <title>Semantic Code Search</title>
       <link>https://example.org/posts/2024-09-24-code-search/</link>

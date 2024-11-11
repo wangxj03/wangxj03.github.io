@@ -2,19 +2,22 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
+    <loc>https://example.org/tags/ai/</loc>
+    <lastmod>2024-11-08T20:39:45-08:00</lastmod>
+  </url><url>
     <loc>https://example.org/posts/</loc>
+    <lastmod>2024-11-08T20:39:45-08:00</lastmod>
+  </url><url>
+    <loc>https://example.org/posts/2024-11-08-schema-generation/</loc>
+    <lastmod>2024-11-08T20:39:45-08:00</lastmod>
+  </url><url>
+    <loc>https://example.org/tags/</loc>
     <lastmod>2024-11-08T20:39:45-08:00</lastmod>
   </url><url>
     <loc>https://example.org/</loc>
     <lastmod>2024-11-08T20:39:45-08:00</lastmod>
   </url><url>
-    <loc>https://example.org/tags/ai/</loc>
-    <lastmod>2024-09-24T23:01:05-07:00</lastmod>
-  </url><url>
     <loc>https://example.org/posts/2024-09-24-code-search/</loc>
-    <lastmod>2024-09-24T23:01:05-07:00</lastmod>
-  </url><url>
-    <loc>https://example.org/tags/</loc>
     <lastmod>2024-09-24T23:01:05-07:00</lastmod>
   </url><url>
     <loc>https://example.org/posts/2024-08-23-anthropic-webui/</loc>

@@ -1,5 +1,5 @@
 ---
-title: "Schema Generation for Function Calling in Large Language Models"
+title: "Schema Generation for LLM Function Calling"
 date: 2024-11-08T20:39:45-08:00
 tags: ["AI"]
 author: "Xiaojing Wang"
@@ -21,9 +21,11 @@ ShowRssButtonInSectionTermList: false
 UseHugoToc: true
 ---
 
-Connecting Large Language Models (LLMs) to external tools through function calling is fundamental to creating effective Agentic AI workflows. In this post, we’ll cover five tips to enhance your experience with function calling.
+The rise of Large Language Models (LLMs) has opened up exciting possibilities for automation and natural language interfaces. But to unlock their full potential, we need to connect them with external tools - and that's where function calling comes in. In this post, we'll explore how to streamline the process of defining these connections, moving from manual schema writing to automated solutions.
 
-When calling LLMs, function definitions must be provided as available "tools". Each definition describes the function’s purpose and required parameters. OpenAI's [function calling guide](https://platform.openai.com/docs/guides/function-calling#step-2-describe-your-function-to-the-model-so-it-knows-how-to-call-it) shows how to define this schema in JSON format:
+## Tool Function Definitions
+
+When connecting LLMs to external tools, we need two key pieces: the tool functions themselves and their definitions. Each definition describes the function’s purpose and required parameters. OpenAI's [function calling guide](https://platform.openai.com/docs/guides/function-calling#step-2-describe-your-function-to-the-model-so-it-knows-how-to-call-it) shows how to create such schemas in JSON format:
 
 ```json
 {
@@ -43,9 +45,9 @@ When calling LLMs, function definitions must be provided as available "tools". E
 }
 ```
 
-Manually creating schemas for simple functions is manageable. However, as functions grow in complexity, maintaining accurate schemas becomes challenging and error-prone—especially when managing multiple tools.
+## Automating Schema Generation with Python Inspection
 
-OpenAI's multi-agent framework, [Swarm](https://github.com/openai/swarm/tree/main), showcases an approach to use Python's `inspect` module to introspect the given Python function's parameters and build the schema dynamically.
+While manual schema creation is straightforward for simple functions, maintaining these definitions can become tedious and error-prone as the number or complexity of functions grows. Automating schema generation will be a more scalable solution. Python’s built-in `inspect` module allows us to peek into function signatures and automatically generate these schemas. OpenAI's [Swarm](https://github.com/openai/swarm/tree/main) framework offers a reference implementation for this approach.
 
 ```python
 def function_to_json(func) -> dict:
@@ -107,7 +109,11 @@ def function_to_json(func) -> dict:
     }
 ```
 
-Since Swarm is primarily for educational purposes. The authors haven't really tried very hard to make the type mapping comprehensive. For example, it doesn't support enum parameters. However, the core idea is sound and can be extended. For developers seeking type safety and more control over the schema, they can define a [pydantic](https://docs.pydantic.dev/latest/) model and build the schema from it. For example, the following code snippet shows schema generation for the `get_current_temperature` function:
+Swarm’s implementation is a helpful starting point, though it may lack support for more complex parameter types, such as enums. The core concept, however, is sound and extensible.
+
+## Enhanced Schema Generation with Pydantic
+
+[Pydantic](https://docs.pydantic.dev/latest/) offers a powerful alternative to handle more complex types. By defining parameters as Pydantic models, you benefit from automatic type validation, default values, and detailed parameter descriptions, all while generating accurate JSON schemas. Below is an example of using Pydantic to create a JSON schema for a function that retrieves the current temperature.
 
 ```python
 from typing import Literal
@@ -116,7 +122,7 @@ from pydantic import BaseModel, Field
 
 
 class CurrentTemperature(BaseModel):
-    localtion: str = Field(
+    location: str = Field(
         ..., description="Get the current temperature for a specific location"
     )
 
@@ -128,7 +134,7 @@ class CurrentTemperature(BaseModel):
 print(CurrentTemperature.model_json_schema())
 ```
 
-The output JSON matches the `parameters` field in the OpenAI Assistants function calling [example](https://platform.openai.com/docs/assistants/tools/function-calling)
+The resulting JSON schema aligns with OpenAI's function calling [example](https://platform.openai.com/docs/assistants/tools/function-calling)
 
 ```json
 {
@@ -151,7 +157,11 @@ The output JSON matches the `parameters` field in the OpenAI Assistants function
 }
 ```
 
-Furthermore, we can combine both the `inspect` and `pydantic` approaches. The following code snippet leverages type annotations for type mapping and creates a pydantic model dynamically to build the schema.
+Pydantic’s approach is both readable and maintainable.
+
+## Combining Inspection and Pydantic
+
+We can take a step further by combining both approaches. The following implementation leverages type annotations for type mapping and uses a dynamic Pydantic model to generate the schema:
 
 ```python
 import inspect
@@ -198,3 +208,7 @@ def get_tool_param(func: Callable[..., Any]) -> ChatCompletionToolParam:
         type="function",
     )
 ```
+
+## Conclusion
+
+Leveraging Python’s introspection capabilities alongside Pydantic’s type system allows for the automated generation of JSON schemas directly from function signatures. This approach minimizes manual effort, maintains consistency, and strengthens type safety, providing developers with an efficient and scalable way to connect LLMs with external tools.

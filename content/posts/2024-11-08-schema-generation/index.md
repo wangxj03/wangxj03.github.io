@@ -21,11 +21,11 @@ ShowRssButtonInSectionTermList: false
 UseHugoToc: true
 ---
 
-The rise of Large Language Models (LLMs) has opened up exciting possibilities for automation and natural language interfaces. But to unlock their full potential, we need to connect them with external tools - and that's where function calling comes in. In this post, we'll explore how to streamline the process of defining these connections, moving from manual schema writing to automated solutions.
+The rise of Large Language Models (LLMs) has opened up exciting possibilities for automation and natural language interfaces. But to unlock their full potential, we need to connect them with external tools — and that's where function calling comes in. In this post, we'll explore how to streamline the process of defining these connections, moving from manual schema writing to automated solutions.
 
 ## Tool Function Definitions
 
-When connecting LLMs to external tools, we need two key pieces: the tool functions themselves and their definitions. Each definition describes the function’s purpose and required parameters. OpenAI's [function calling guide](https://platform.openai.com/docs/guides/function-calling#step-2-describe-your-function-to-the-model-so-it-knows-how-to-call-it) shows how to create such schemas in JSON format:
+When connecting LLMs to external tools, we need two key components: the tool functions themselves and their definitions. Each definition describes the function’s purpose and required parameters. OpenAI's [function calling guide](https://platform.openai.com/docs/guides/function-calling#step-2-describe-your-function-to-the-model-so-it-knows-how-to-call-it) provides examples for creating these schemas in JSON format:
 
 ```json
 {
@@ -47,7 +47,7 @@ When connecting LLMs to external tools, we need two key pieces: the tool functio
 
 ## Automating Schema Generation with Python Inspection
 
-While manual schema creation is straightforward for simple functions, maintaining these definitions can become tedious and error-prone as the number or complexity of functions grows. Automating schema generation will be a more scalable solution. Python’s built-in `inspect` module allows us to peek into function signatures and automatically generate these schemas. OpenAI's [Swarm](https://github.com/openai/swarm/tree/main) framework offers a reference implementation for this approach.
+While manual schema creation is straightforward for simple functions, maintaining these definitions can become tedious and error-prone as the number or complexity of functions grows. Automating schema generation is a more scalable solution. Python’s built-in `inspect` module allows us to peek into function signatures and automatically generate these schemas. OpenAI's [Swarm](https://github.com/openai/swarm/tree/main) framework offers a reference implementation for this approach.
 
 ```python
 def function_to_json(func) -> dict:
@@ -134,7 +134,7 @@ class CurrentTemperature(BaseModel):
 print(CurrentTemperature.model_json_schema())
 ```
 
-The resulting JSON schema aligns with OpenAI's function calling [example](https://platform.openai.com/docs/assistants/tools/function-calling)
+The resulting JSON schema aligns well with OpenAI's function calling [example](https://platform.openai.com/docs/assistants/tools/function-calling)
 
 ```json
 {
@@ -211,4 +211,4 @@ def get_tool_param(func: Callable[..., Any]) -> ChatCompletionToolParam:
 
 ## Conclusion
 
-Leveraging Python’s introspection capabilities alongside Pydantic’s type system allows for the automated generation of JSON schemas directly from function signatures. This approach minimizes manual effort, maintains consistency, and strengthens type safety, providing developers with an efficient and scalable way to connect LLMs with external tools.
+Leveraging Python’s introspection capabilities alongside Pydantic’s type system allows for automated generation of JSON schemas directly from function signatures. This approach minimizes manual effort, maintains consistency, and strengthens type safety, providing developers with an efficient and scalable way to connect LLMs with external tools.

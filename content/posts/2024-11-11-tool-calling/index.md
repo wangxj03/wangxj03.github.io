@@ -21,13 +21,11 @@ ShowRssButtonInSectionTermList: false
 UseHugoToc: true
 ---
 
-LLM tool calling is a critical step in any agentic AI workflow. In this post, we build a text-to-SQL example with [DuckDB](https://github.com/duckdb/duckdb) to show a few tips to improve LLM tool calling.
+LLM tool calling is a critical step in any agentic AI workflow. In this post, we build an application with [DuckDB](https://github.com/duckdb/duckdb) to show a few tips to improve LLM tool calling.
 
 ## Text-to-SQL Application
 
-We use the [Hacker news](https://motherduck.com/docs/getting-started/sample-data-queries/hacker-news/) dataset compiled by [Mother Duck](https://motherduck.com/). The dataset contains all user posts in most of 2022 along with comments and votes. For simplicity, we only keep the posts of type `story` with non-null text.
-
-We build a simple text-to-SQL application with DuckDB. The application maintains a global connection to the database and provides a `run_sql` function to execute SQL queries. The `run_sql` function takes a SQL query as input and returns the result in a JSON string.
+We build a simple text-to-SQL application with the [Hacker news](https://motherduck.com/docs/getting-started/sample-data-queries/hacker-news/) dataset compiled by [Mother Duck](https://motherduck.com/). The dataset contains all user posts in most of 2022 along with comments and votes. For simplicity, we only keep story posts with non-null text. The application essentially provides a natural language interface to the underlying dataset. It first translates the input text to a SQL query, then executes the SQL query against the database, and finally communicates the JSON result back to the user in natural language. At the core of the application is the `run_sql` function that executes SQL queries against the Hacker news table `posts`.
 
 ```python
 import duckdb
@@ -64,11 +62,15 @@ The application has the following lifecycle:
 
 ![alt text](function_call.png)
 
-When calling it with input text "What are the most commented posts?", the bot manages to convert it to SQL query`SELECT title, comments FROM posts ORDER BY comments DESC LIMIT 10;` and executes it with the `run_sql` function.
+### Success Example
+
+With input query "What are the most commented posts?", the application manages to convert it to SQL query`SELECT title, comments FROM posts ORDER BY comments DESC LIMIT 10;` and returns the result in markdown list
 
 ![alt text](most_commented.png)
 
-While it works for the simple query, the application may fail for more complex queries. For example, when calling it with input text "What are the most commented posts each month?", the bot may fail due to faulty SQL query generation. We show a few faulty SQL queries below:
+### Failure Example
+
+While it works for simple aggregation query, the application starts to struggle for more complex queries like "What are the most commented posts each month?" which requires a sub-query or more advanced SQL features. Below are a few examples of incorrect SQL queries:
 
 - Incorrect HAVING clause in the SQL query:
 
@@ -97,4 +99,29 @@ While it works for the simple query, the application may fail for more complex q
 
 ## Tip 1: Retry on Error
 
-The first tip is to retry on error. When the application fails to generate a correct SQL query, it can retry with a simpler query. For example, when the bot fails to generate the correct SQL query for the input text "What are the most commented posts each month?", it can retry with a simpler query `SELECT title, comments FROM posts ORDER BY comments DESC LIMIT 10;`.
+When the application fails to generate a correct SQL query, just feed the SQL execution error message back to LLM and let it figure out the next step. In many cases, the LLM can self-resolve the issue.
+
+For example, using the same input query "What are the most commented posts?" as above, the application first generates an incorrect SQL query
+
+```sql
+SELECT STRFTIME(timestamp, '%Y-%m') AS month, title, MAX(comments) as max_comments
+FROM posts
+GROUP BY month
+ORDER BY month;
+```
+
+with an execution error
+
+```sh
+Binder Error: column "title" must appear in the GROUP BY clause or must be part of an aggregate function. Either add it to the GROUP BY list, or use "ANY_VALUE(title)" if the exact value of "title" is not important.
+```
+
+It is able to retry and recover from the error with the correct SQL query. See the full Langfuse [trace](https://us.cloud.langfuse.com/project/cm27ro2si00cd8mi56o0af4bq/traces/1eafe226-882e-4d52-aef0-390abbc1b181?observation=199d4a6b-6530-47fb-8616-9b7e97c63aa0).
+
+```sql
+SELECT month, title, comments FROM (
+    SELECT STRFTIME(timestamp, '%Y-%m') AS month, title, comments,
+           ROW_NUMBER() OVER (PARTITION BY STRFTIME(timestamp, '%Y-%m') ORDER BY comments DESC) as rn
+    FROM posts
+) WHERE rn = 1;
+```

@@ -64,13 +64,13 @@ The application has the following lifecycle:
 
 ### Success Example
 
-With input query "What are the most commented posts?", the application manages to convert it to SQL query`SELECT title, comments FROM posts ORDER BY comments DESC LIMIT 10;` and returns the result in markdown list
+With input query "What are the most commented posts?", the LLM manages to convert it to SQL query`SELECT title, comments FROM posts ORDER BY comments DESC LIMIT 10;` and returns the result in markdown list
 
 ![alt text](most_commented.png)
 
 ### Failure Example
 
-While it works for simple aggregation query, the application starts to struggle for more complex queries like "What are the most commented posts each month?" which requires a sub-query or more advanced SQL features. Below are a few examples of incorrect SQL queries:
+While it works for simple aggregation query, the LLM starts to struggle for more complex queries like "What are the most commented posts each month?" which requires a sub-query or more advanced SQL features. Below are a few examples of incorrect SQL queries:
 
 - Incorrect HAVING clause in the SQL query:
 
@@ -99,9 +99,11 @@ While it works for simple aggregation query, the application starts to struggle 
 
 ## Tip 1: Retry on Error
 
-When the application fails to generate a correct SQL query, just feed the SQL execution error message back to LLM and let it figure out the next step. In many cases, the LLM can self-resolve the issue.
+LLM tool calling is not always successful on the first attempt, especially when dealing with more complex task. However, it excels when provided with additional context or feedback. By retrying on error, LLM can continue to make progress towards the correct solution. We witnessed this in the recent [computer use](https://www.anthropic.com/news/3-5-models-and-computer-use) for coding demo by Anthropic. As part of the coding task to build a new personal website, Claude first attempted to start a Python server with an error, but then retried with a new version and succeeded.
 
-For example, using the same input query "What are the most commented posts?" as above, the application first generates an incorrect SQL query
+![alt text](claude_computer_use_for_coding.png)
+
+Let's revisit the scenaior where the LLM fails with input "What are the most commented posts?". Initially, the LLM produces an invalid SQL query
 
 ```sql
 SELECT STRFTIME(timestamp, '%Y-%m') AS month, title, MAX(comments) as max_comments
@@ -110,13 +112,13 @@ GROUP BY month
 ORDER BY month;
 ```
 
-with an execution error
+which triggers the following DuckDB execution error
 
 ```sh
 Binder Error: column "title" must appear in the GROUP BY clause or must be part of an aggregate function. Either add it to the GROUP BY list, or use "ANY_VALUE(title)" if the exact value of "title" is not important.
 ```
 
-It is able to retry and recover from the error with the correct SQL query. See the full Langfuse [trace](https://us.cloud.langfuse.com/project/cm27ro2si00cd8mi56o0af4bq/traces/1eafe226-882e-4d52-aef0-390abbc1b181?observation=199d4a6b-6530-47fb-8616-9b7e97c63aa0).
+By sending the error message back to the LLM along with the original query, the model has the opportunity to refine its response. In this case, the LLM generates a corrected query:
 
 ```sql
 SELECT month, title, comments FROM (
@@ -125,3 +127,54 @@ SELECT month, title, comments FROM (
     FROM posts
 ) WHERE rn = 1;
 ```
+
+## Tip 2: Allow More Thinking Time
+
+There has been a lot of recent talks about the inference scaling law which suggests the performance of a model improves with more computing time spent on inference. Jim Fan [tweeted](https://x.com/DrJimFan/status/1834279865933332752) about it when the OpenAI o1 model was out. Sequoia published a blog post [Generative AI’s Act o1](https://www.sequoiacap.com/article/generative-ais-act-o1/) to look into the future with its implications.
+
+How does this apply to our text-to-SQL application? One simple approach to allow more thinking time is to a pre-tool-calling step. In this step, the model is instructed to first break down the task into logical steps and draft SQL for each step before proceeding to the tool calling and execution.
+
+Consider the same input query "What are the most commented posts each month?". By adding a reasoning step, the model can sketch out a plan to improve the SQL generation. Here's an example captured in the Langfuse [trace](https://us.cloud.langfuse.com/project/cm27ro2si00cd8mi56o0af4bq/traces/69bd6cfc-c8b6-4960-a3ef-08d6f4b06a73), where the model explicitly reasons through the solution
+
+> 1. **Extract the year and month** from the `timestamp` to group the data on a monthly basis.
+> 2. **Rank the posts** within each month based on the number of comments to identify the most commented one.
+> 3. **Filter** the top-ranked post for each month.
+
+Using these steps, the model constructures subqueries and combines them into the final SQL
+
+```sql
+WITH posts_with_month AS (
+    SELECT
+        title,
+        comments,
+        EXTRACT(YEAR FROM timestamp) AS year,
+        EXTRACT(MONTH FROM timestamp) AS month
+    FROM
+        posts
+),
+ranked_posts AS (
+    SELECT
+        title,
+        comments,
+        year,
+        month,
+        ROW_NUMBER() OVER (PARTITION BY year, month ORDER BY comments DESC) AS rank
+    FROM
+        posts_with_month
+)
+SELECT
+    title,
+    comments,
+    year,
+    month
+FROM
+    ranked_posts
+WHERE
+    rank = 1
+ORDER BY
+    year, month;
+```
+
+While this query is slightly verbose, it is accurate and demonstrates the model’s ability to methodically reason through the problem.
+
+## Tip 3: Example Bank

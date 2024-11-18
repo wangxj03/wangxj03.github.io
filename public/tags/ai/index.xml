@@ -6,13 +6,13 @@
     <description>Recent content in AI on Xiaojing&#39;s Blog</description>
     <generator>Hugo -- 0.133.0</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 11 Nov 2024 20:37:57 -0800</lastBuildDate>
+    <lastBuildDate>Sun, 17 Nov 2024 22:34:11 -0800</lastBuildDate>
     <atom:link href="http://localhost:1313/tags/ai/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Enhancing LLM Tool Calling</title>
-      <link>http://localhost:1313/posts/2024-11-11-tool-calling/</link>
-      <pubDate>Mon, 11 Nov 2024 20:37:57 -0800</pubDate>
-      <guid>http://localhost:1313/posts/2024-11-11-tool-calling/</guid>
+      <link>http://localhost:1313/posts/2024-11-17-tool-calling/</link>
+      <pubDate>Sun, 17 Nov 2024 22:34:11 -0800</pubDate>
+      <guid>http://localhost:1313/posts/2024-11-17-tool-calling/</guid>
       <description>Tool calling is a critical capability that allows Large Language Models (LLMs) to interact with external systems and perform complex tasks. In this post, we&amp;rsquo;ll explore practical strategies to enhance LLM tool calling through the lens of building a text-to-SQL application.
 A Text-to-SQL Case Study Our example application provides a natural language interface to query Hacker news compiled by Mother Duck. The dataset contains user posts, comments, and votes from most of 2022.</description>
     </item>

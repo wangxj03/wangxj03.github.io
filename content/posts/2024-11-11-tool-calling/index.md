@@ -1,11 +1,11 @@
 ---
 title: "Enhancing LLM Tool Calling"
-date: 2024-11-17T20:37:57-08:00
+date: 2024-11-11T20:37:57-08:00
 tags: ["AI"]
 author: "Xiaojing Wang"
 showToc: true
 TocOpen: false
-draft: true
+draft: false
 hidemeta: false
 comments: false
 disableHLJS: false
@@ -25,7 +25,7 @@ Tool calling is a critical capability that allows Large Language Models (LLMs) t
 
 ## A Text-to-SQL Case Study
 
-Our example application provides a natural language interface to query [Hacker news](https://motherduck.com/docs/getting-started/sample-data-queries/hacker-news/). Compiled by [Mother Duck](https://motherduck.com/), this dataset contains user posts, comments, and votes from most of 2022. Using [DuckDB](https://github.com/duckdb/duckdb) as the database engine, our application translates user queries into SQL, executes them, and returns the results in natural language.
+Our example application provides a natural language interface to query [Hacker news](https://motherduck.com/docs/getting-started/sample-data-queries/hacker-news/) compiled by [Mother Duck](https://motherduck.com/). The dataset contains user posts, comments, and votes from most of 2022. Using [DuckDB](https://github.com/duckdb/duckdb) as the database engine, our application translates user queries into SQL, executes them, and returns the results in natural language.
 
 Here's the core function that executes SQL queries against the Hacker news dataset:
 
@@ -114,11 +114,11 @@ This brings us to 3 practical tips to enhance LLM tool calling:
 
 ### 1. Retry on Error
 
-When LLMs fail at tool calling, they are likely to progress further by retrying with error feedback. Anthropic's recent [computer use](https://www.anthropic.com/news/3-5-models-and-computer-use) demo illustrated this beautifully -- their Claude model initially failed to start a Python server but succeeded after analyzing the error and adjusting its Python version.
+When LLMs fail at tool calling, they are likely to progress further by retrying with error feedback. Anthropic's recent [computer use](https://www.anthropic.com/news/3-5-models-and-computer-use) [demo](https://youtu.be/vH2f7cjXjKI?si=wnxDU5zddltCLynY&t=122) illustrated this beautifully -- their Claude model initially failed to start a Python server but succeeded after analyzing the error and adjusting its Python version.
 
 ![alt text](claude_computer_use_for_coding.png)
 
-In our example with query "What are the most commented posts each month?", this Langfuse [trace](https://us.cloud.langfuse.com/project/cm27ro2si00cd8mi56o0af4bq/traces/1eafe226-882e-4d52-aef0-390abbc1b181) illustrates a case where the initial SQL query is syntatically incorrect:
+In our monthly top posts query example, this Langfuse [trace](https://us.cloud.langfuse.com/project/cm27ro2si00cd8mi56o0af4bq/traces/1eafe226-882e-4d52-aef0-390abbc1b181) illustrates a case where the initial SQL query was syntatically incorrect:
 
 ```sql
 SELECT STRFTIME(timestamp, '%Y-%m') AS month, title, MAX(comments) as max_comments
@@ -127,13 +127,13 @@ GROUP BY month
 ORDER BY month;
 ```
 
-Executing the query against the DuckDB database returns an error:
+Executing the query against the DuckDB database returned an error:
 
 ```sh
 Binder Error: column "title" must appear in the GROUP BY clause or must be part of an aggregate function. Either add it to the GROUP BY list, or use "ANY_VALUE(title)" if the exact value of "title" is not important.
 ```
 
-Feeding the DuckDB error message back to the LLM eventually leads to a correct solution:
+Feeding the DuckDB error message back to the LLM eventually lead to a correct solution:
 
 ```sql
 SELECT month, title, comments FROM (
@@ -145,7 +145,7 @@ SELECT month, title, comments FROM (
 
 ### 2. Allow More Thinking Time
 
-The discussion about the inference scaling law has gained significant traction, as highlighted in both Jim Fan's influential [tweet](https://x.com/DrJimFan/status/1834279865933332752) and Sequoia capital's blog post [Generative AI’s Act o1](https://www.sequoiacap.com/article/generative-ais-act-o1/). The law suggests that the performance of a model improves with more computing time spent on inference.
+The discussion about the inference scaling law has gained significant traction lately, as highlighted in both Jim Fan's influential [tweet](https://x.com/DrJimFan/status/1834279865933332752) and Sequoia's blog post [Generative AI’s Act o1](https://www.sequoiacap.com/article/generative-ais-act-o1/). The law suggests that the performance of a model improves with more computing time spent on inference.
 
 We can leverage this insight by adding an explicit reasoning step before tool calling. For our monthly top posts query, this Langfuse [trace](https://us.cloud.langfuse.com/project/cm27ro2si00cd8mi56o0af4bq/traces/69bd6cfc-c8b6-4960-a3ef-08d6f4b06a73) captures a case where the tasks was broken into three logical steps:
 
@@ -153,7 +153,7 @@ We can leverage this insight by adding an explicit reasoning step before tool ca
 2. **Rank the posts** within each month based on the number of comments to identify the most commented one.
 3. **Filter** the top-ranked post for each month.
 
-This structured thinking leads to a correct final SQL query, even being slightly verbose:
+This structured thinking lead to a correct final SQL query, even being slightly verbose:
 
 ```sql
 WITH posts_with_month AS (
@@ -190,7 +190,7 @@ ORDER BY
 
 ### 3. Use Few-shot Learning
 
-Providing relevant examples in the prompt is a cheap but effective way to improve tool calling performance. DuckDB's [documentation](https://duckdb.org/docs/sql/introduction) already contains many SQL snippets, we can readily use them as examples. Here we leverage the [instructor](https://github.com/instructor-ai/instructor) package to parse these examples the Pydantic model below. We then index the example embeddings into a vector database and retrieve the most similar examples at inference time.
+Providing relevant examples in the prompt is a cheap but effective way to improve tool calling performance. DuckDB's [documentation](https://duckdb.org/docs/sql/introduction) already contains many SQL snippets, we can readily use them as examples. Here we leverage the [instructor](https://github.com/instructor-ai/instructor) package to parse these examples into the Pydantic model below. We then index the example embeddings into a vector database and retrieve the most similar examples at inference time.
 
 ```python
 class Example(BaseModel):
@@ -204,7 +204,7 @@ class Example(BaseModel):
     )
 ```
 
-For monthly top posts query example, this Langfuse [trace](https://us.cloud.langfuse.com/project/cm27ro2si00cd8mi56o0af4bq/traces/e8956c34-6569-4324-ad4e-3b0be153b9e2) captures a case where [one](https://duckdb.org/docs/sql/query_syntax/qualify.html#examples) of the 10 retrieved examples was about the `QUALIFY` clause. Using the `QUALIFY` clause, the LLM generated a correct and highly efficient SQL query, demonstrating the power of leveraging relevant examples.
+For monthly top posts query example, this Langfuse [trace](https://us.cloud.langfuse.com/project/cm27ro2si00cd8mi56o0af4bq/traces/e8956c34-6569-4324-ad4e-3b0be153b9e2) captures a case where [one](https://duckdb.org/docs/sql/query_syntax/qualify.html#examples) of the 10 retrieved examples was about the `QUALIFY` clause. Using the clause, LLM managed to generate a correct and highly efficient SQL query, demonstrating the power of few-shot learning.
 
 ```sql
 SELECT DATE_TRUNC('month', timestamp) as month, title, comments
@@ -215,7 +215,7 @@ QUALIFY ROW_NUMBER() OVER (PARTITION BY DATE_TRUNC('month', timestamp) ORDER BY 
 
 ## LLM Observability: The Hidden Superpower
 
-LLM observability platforms like [Langfuse](https://langfuse.com/), [Langsmith](https://www.langchain.com/langsmith), and [braintrust](https://www.braintrust.dev/docs/guides/tracing) provide crucial insights into the reasoning process and interactions with tools. These platforms capture traces of LLM API calls and responses, vector database interactions, and local function execution. They also allow measuring step-by-step latency and end-to-end latency. This visibility is invaluable for debugging and optimizing LLM tool calling.
+LLM observability platforms like [Langfuse](https://langfuse.com/), [Langsmith](https://www.langchain.com/langsmith), and [braintrust](https://www.braintrust.dev/docs/guides/tracing) provide crucial insights into the reasoning process and interactions with tools. These platforms capture traces of LLM API calls and responses, vector database interactions, and local function execution. You can also embrace the tools to measure step-by-step latency and end-to-end latency. This visibility is invaluable for debugging and optimizing LLM tool calling.
 
 ## Takeaways
 

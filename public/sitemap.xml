@@ -3,19 +3,19 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>http://localhost:1313/tags/ai/</loc>
-    <lastmod>2024-11-10T20:37:57-08:00</lastmod>
-  </url><url>
-    <loc>http://localhost:1313/posts/</loc>
-    <lastmod>2024-11-10T20:37:57-08:00</lastmod>
-  </url><url>
-    <loc>http://localhost:1313/tags/</loc>
-    <lastmod>2024-11-10T20:37:57-08:00</lastmod>
+    <lastmod>2024-11-11T20:37:57-08:00</lastmod>
   </url><url>
     <loc>http://localhost:1313/posts/2024-11-11-tool-calling/</loc>
-    <lastmod>2024-11-10T20:37:57-08:00</lastmod>
+    <lastmod>2024-11-11T20:37:57-08:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/posts/</loc>
+    <lastmod>2024-11-11T20:37:57-08:00</lastmod>
+  </url><url>
+    <loc>http://localhost:1313/tags/</loc>
+    <lastmod>2024-11-11T20:37:57-08:00</lastmod>
   </url><url>
     <loc>http://localhost:1313/</loc>
-    <lastmod>2024-11-10T20:37:57-08:00</lastmod>
+    <lastmod>2024-11-11T20:37:57-08:00</lastmod>
   </url><url>
     <loc>http://localhost:1313/posts/2024-11-08-schema-generation/</loc>
     <lastmod>2024-11-08T20:39:45-08:00</lastmod>

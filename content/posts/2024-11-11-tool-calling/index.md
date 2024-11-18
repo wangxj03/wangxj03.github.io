@@ -1,5 +1,5 @@
 ---
-title: "Tips to Improve LLM Tool Calling"
+title: "Enhancing LLM Tool Calling"
 date: 2024-11-10T20:37:57-08:00
 tags: ["AI"]
 author: "Xiaojing Wang"

@@ -228,3 +228,11 @@ FROM posts
 WHERE comments IS NOT NULL
 QUALIFY ROW_NUMBER() OVER (PARTITION BY DATE_TRUNC('month', timestamp) ORDER BY comments DESC) = 1;
 ```
+
+## Bonus Tip: Better Observability with LLM Tracing
+
+LLM function calling unlocks new capability. You also want to observe how LLM reasons through the problem and how it interacts with the tool. LLM observability tools like [Langfuse](https://langfuse.com/), [Langsmith](https://www.langchain.com/langsmith), and [braintrust](https://www.braintrust.dev/docs/guides/tracing) provide powerful tracing features to capture the entire lifecycle of the LLM function calling. The trace includes input and output of LLM API call, vector database API call, local function call, and more. You can inspect all the intermediate steps and results. You can also measure the end-to-end latency as well as the latency of each step.
+
+## Conclusion
+
+In this post, we demonstrated a few tips to improve LLM tool calling for a text-to-SQL application.

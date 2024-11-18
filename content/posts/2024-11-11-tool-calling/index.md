@@ -177,4 +177,54 @@ ORDER BY
 
 While this query is slightly verbose, it is accurate and demonstrates the model’s ability to methodically reason through the problem.
 
-## Tip 3: Example Bank
+## Tip 3: Few-shot Learning
+
+One quick way to improve SQL generation quality is to show LLM some examples. DuckDB's [documentation](https://duckdb.org/docs/sql/introduction) is a rich source of such examples. We can parse the documentation in [markdown](https://github.com/duckdb/duckdb-web/tree/main/docs/sql) format and extract snippets of SQL query examples. Here we leverage the [instructor](https://github.com/instructor-ai/instructor) for structured output with LLM. We simply need to define the output Pydantic model and use the field documentation as prompts for the LLM.
+
+```python
+from openai import OpenAI
+from openai.types.chat import ChatCompletionUserMessageParam
+from pydantic import BaseModel, Field
+
+
+class Example(BaseModel):
+    task: str = Field(
+        ..., description="Description of the task that is to be solved by the SQL query"
+    )
+    sql: str = Field(..., description="DuckDB SQL query to solve the task")
+    explanation: str = Field(
+        ...,
+        description="Generic explanation of the query syntax found in the surrounding markdown",
+    )
+
+
+class ExampleBank(BaseModel):
+    """
+    Parse the input markdown string to extract text-to-sql examples with explanations.
+    Extract one example per sql code block.
+    Be sure to inspect all sql code blocks.
+    The generic explanation must be strictly based on the surrounding markdown not your prior knowledge.
+    Avoid include example specific details such table name or column name in the explanation.
+    """
+
+    examples: list[Example] = Field(..., description="List of examples")
+
+
+def parse(client: OpenAI, input: str, model: str = "gpt-4o") -> list[Example]:
+    return client.chat.completions.create(
+        model=model,
+        response_model=ExampleBank,
+        messages=[ChatCompletionUserMessageParam(content=input, role="user")],
+    )
+```
+
+Once we we extract all the examples from the DuckDB documentation, we can create embedding for each example and index those embeddings into a vector database. At inference time, we can retrieve the most similar examples to the input query and use them as additional context for the LLM.
+
+Langfuse [trace](https://us.cloud.langfuse.com/project/cm27ro2si00cd8mi56o0af4bq/traces/e8956c34-6569-4324-ad4e-3b0be153b9e2) shows that the model retrieves 10 most similar examples for the input query "What are the most commented posts each month?". One [example](https://duckdb.org/docs/sql/query_syntax/qualify.html#examples) illustrates the use of the `QUALIFY`. The LLM was able to generate a correct SQL query using the `QUALIFY` clause which is the most succinct and efficient way to solve the problem.
+
+```sql
+SELECT DATE_TRUNC('month', timestamp) as month, title, comments
+FROM posts
+WHERE comments IS NOT NULL
+QUALIFY ROW_NUMBER() OVER (PARTITION BY DATE_TRUNC('month', timestamp) ORDER BY comments DESC) = 1;
+```

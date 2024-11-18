@@ -1,6 +1,6 @@
 ---
-title: "Tips to Improve LLM Tool Calling"
-date: 2024-11-10T20:37:57-08:00
+title: "Enhancing LLM Tool Calling"
+date: 2024-11-17T20:37:57-08:00
 tags: ["AI"]
 author: "Xiaojing Wang"
 showToc: true
@@ -25,7 +25,7 @@ Tool calling is a critical capability that allows Large Language Models (LLMs) t
 
 ## A Text-to-SQL Case Study
 
-Our example application provides a natural language interface to query [Hacker news](https://motherduck.com/docs/getting-started/sample-data-queries/hacker-news/). Compiled by [Mother Duck](https://motherduck.com/), the dataset contains user posts, comments, and votes from most of 2022. Using [DuckDB](https://github.com/duckdb/duckdb) as the database engine, our application translates user queries into SQL, executes them, and returns the results in natural language.
+Our example application provides a natural language interface to query [Hacker news](https://motherduck.com/docs/getting-started/sample-data-queries/hacker-news/). Compiled by [Mother Duck](https://motherduck.com/), this dataset contains user posts, comments, and votes from most of 2022. Using [DuckDB](https://github.com/duckdb/duckdb) as the database engine, our application translates user queries into SQL, executes them, and returns the results in natural language.
 
 Here's the core function that executes SQL queries against the Hacker news dataset:
 
@@ -69,7 +69,10 @@ The diagram below shows the full lifecycle of a user query:
 Simple queries like "What are the most commented posts?" work beautifully. The LLM generates straightforward SQL:
 
 ```sql
-SELECT title, comments FROM posts ORDER BY comments DESC LIMIT 10;
+SELECT title, comments
+FROM posts
+ORDER BY comments DESC
+LIMIT 10;
 ```
 
 This query retrieves the top posts by comment count and returns the results in a formatted markdown list:
@@ -95,23 +98,23 @@ However, seemingly minor increases in complexity can trip up the LLM. Consider "
   ```sql
   SELECT strftime(timestamp, '%Y-%m') as month, title, comments
   FROM (
-  SELECT month, title, comments,
-  ROW_NUMBER() OVER (PARTITION BY month ORDER BY comments DESC) as rn
-  FROM (
+    SELECT month, title, comments,
+    ROW_NUMBER() OVER (PARTITION BY month ORDER BY comments DESC) as rn
+    FROM (
       SELECT strftime(timestamp, '%Y-%m') as month, title, comments
       FROM posts
-  )
+    )
   )
   WHERE rn = 1;
   ```
 
-## Tips to Improve LLM Tool Calling
+## Tips to Improve Tool Calling
 
 This brings us to 3 practical tips to enhance LLM tool calling:
 
 ### 1. Retry on Error
 
-When LLMs fail at tool calling, they are likely to progress further by retrying with error feedback. Anthropic's recent [computer use](https://www.anthropic.com/news/3-5-models-and-computer-use) demo illustrated this beautifully -- their Claude model initially failed to start a Python server but succeeded after analyzing the error and adjusting its approach.
+When LLMs fail at tool calling, they are likely to progress further by retrying with error feedback. Anthropic's recent [computer use](https://www.anthropic.com/news/3-5-models-and-computer-use) demo illustrated this beautifully -- their Claude model initially failed to start a Python server but succeeded after analyzing the error and adjusting its Python version.
 
 ![alt text](claude_computer_use_for_coding.png)
 
@@ -142,9 +145,9 @@ SELECT month, title, comments FROM (
 
 ### 2. Allow More Thinking Time
 
-The discussion about the inference scaling law has gain a lot of traction, as highlighted in both Jim Fan's influential [tweet](https://x.com/DrJimFan/status/1834279865933332752) and Sequoia capital's blog post [Generative AI’s Act o1](https://www.sequoiacap.com/article/generative-ais-act-o1/). The law suggests that the performance of a model improves with more computing time spent on inference.
+The discussion about the inference scaling law has gained significant traction, as highlighted in both Jim Fan's influential [tweet](https://x.com/DrJimFan/status/1834279865933332752) and Sequoia capital's blog post [Generative AI’s Act o1](https://www.sequoiacap.com/article/generative-ais-act-o1/). The law suggests that the performance of a model improves with more computing time spent on inference.
 
-We can leverage this insight by adding an explicit reasoning step before tool calling. For our monthly top posts query, this Langfuse [trace](https://us.cloud.langfuse.com/project/cm27ro2si00cd8mi56o0af4bq/traces/69bd6cfc-c8b6-4960-a3ef-08d6f4b06a73) captures a case where the tasks was broken into 3 logical steps:
+We can leverage this insight by adding an explicit reasoning step before tool calling. For our monthly top posts query, this Langfuse [trace](https://us.cloud.langfuse.com/project/cm27ro2si00cd8mi56o0af4bq/traces/69bd6cfc-c8b6-4960-a3ef-08d6f4b06a73) captures a case where the tasks was broken into three logical steps:
 
 1. **Extract the year and month** from the `timestamp` to group the data on a monthly basis.
 2. **Rank the posts** within each month based on the number of comments to identify the most commented one.
@@ -201,7 +204,7 @@ class Example(BaseModel):
     )
 ```
 
-For monthly top posts query example, this Langfuse [trace](https://us.cloud.langfuse.com/project/cm27ro2si00cd8mi56o0af4bq/traces/e8956c34-6569-4324-ad4e-3b0be153b9e2) captures a case where [one](https://duckdb.org/docs/sql/query_syntax/qualify.html#examples) of the 10 retrieved examples was about the `QUALIFY` clause. The LLM then learned to generate a correct SQL query using the `QUALIFY` clause, which is the most succinct and efficient way to solve the problem.
+For monthly top posts query example, this Langfuse [trace](https://us.cloud.langfuse.com/project/cm27ro2si00cd8mi56o0af4bq/traces/e8956c34-6569-4324-ad4e-3b0be153b9e2) captures a case where [one](https://duckdb.org/docs/sql/query_syntax/qualify.html#examples) of the 10 retrieved examples was about the `QUALIFY` clause. Using the `QUALIFY` clause, the LLM generated a correct and highly efficient SQL query, demonstrating the power of leveraging relevant examples.
 
 ```sql
 SELECT DATE_TRUNC('month', timestamp) as month, title, comments
@@ -212,11 +215,11 @@ QUALIFY ROW_NUMBER() OVER (PARTITION BY DATE_TRUNC('month', timestamp) ORDER BY 
 
 ## LLM Observability: The Hidden Superpower
 
-LLM observability platforms like [Langfuse](https://langfuse.com/), [Langsmith](https://www.langchain.com/langsmith), and [braintrust](https://www.braintrust.dev/docs/guides/tracing) provide crucial insights into the reasoning process and interactions with tools. These platforms capture traces of LLM API calls and responses, vector database API calls and responses, and local function. They also allow measuring step-by-step latency and end-to-end latency. This visibility is invaluable for debugging and optimizing LLM tool calling.
+LLM observability platforms like [Langfuse](https://langfuse.com/), [Langsmith](https://www.langchain.com/langsmith), and [braintrust](https://www.braintrust.dev/docs/guides/tracing) provide crucial insights into the reasoning process and interactions with tools. These platforms capture traces of LLM API calls and responses, vector database interactions, and local function execution. They also allow measuring step-by-step latency and end-to-end latency. This visibility is invaluable for debugging and optimizing LLM tool calling.
 
 ## Takeaways
 
-Building reliable LLM-powered tools requires a thoughtful approach:
+Creating reliable LLM-powered tools requires a thoughtful approach:
 
 - Use errors as learning opportunities
 - Allow more thinking time and structured reasoning

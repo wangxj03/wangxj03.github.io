@@ -2,25 +2,33 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>AI on Xiaojing&#39;s Blog</title>
-    <link>https://example.org/tags/ai/</link>
+    <link>http://localhost:1313/tags/ai/</link>
     <description>Recent content in AI on Xiaojing&#39;s Blog</description>
     <generator>Hugo -- 0.133.0</generator>
     <language>en-us</language>
-    <lastBuildDate>Fri, 08 Nov 2024 20:39:45 -0800</lastBuildDate>
-    <atom:link href="https://example.org/tags/ai/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sun, 10 Nov 2024 20:37:57 -0800</lastBuildDate>
+    <atom:link href="http://localhost:1313/tags/ai/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Tips to Improve LLM Tool Calling</title>
+      <link>http://localhost:1313/posts/2024-11-11-tool-calling/</link>
+      <pubDate>Sun, 10 Nov 2024 20:37:57 -0800</pubDate>
+      <guid>http://localhost:1313/posts/2024-11-11-tool-calling/</guid>
+      <description>Tool calling is a critical capability that allows Large Language Models (LLMs) to interact with external systems and perform complex tasks. In this post, we&amp;rsquo;ll explore practical strategies to enhance LLM tool calling through the lens of building a text-to-SQL application.
+A Text-to-SQL Case Study Our example application provides a natural language interface to query Hacker news. Compiled by Mother Duck, this dataset contains user posts, comments, and votes from most of 2022.</description>
+    </item>
     <item>
       <title>Schema Generation for LLM Function Calling</title>
-      <link>https://example.org/posts/2024-11-08-schema-generation/</link>
+      <link>http://localhost:1313/posts/2024-11-08-schema-generation/</link>
       <pubDate>Fri, 08 Nov 2024 20:39:45 -0800</pubDate>
-      <guid>https://example.org/posts/2024-11-08-schema-generation/</guid>
+      <guid>http://localhost:1313/posts/2024-11-08-schema-generation/</guid>
       <description>The rise of Large Language Models (LLMs) has opened up exciting possibilities for automation and natural language interfaces. But to unlock their full potential, we need to connect them with external tools — and that&amp;rsquo;s where function calling comes in. In this post, we&amp;rsquo;ll explore how to streamline the process of defining these connections, moving from manual schema writing to automated solutions.
 Tool Function Definitions When connecting LLMs to external tools, we need two key components: the tool functions themselves and their definitions.</description>
     </item>
     <item>
       <title>Semantic Code Search</title>
-      <link>https://example.org/posts/2024-09-24-code-search/</link>
+      <link>http://localhost:1313/posts/2024-09-24-code-search/</link>
       <pubDate>Tue, 24 Sep 2024 23:01:05 -0700</pubDate>
-      <guid>https://example.org/posts/2024-09-24-code-search/</guid>
+      <guid>http://localhost:1313/posts/2024-09-24-code-search/</guid>
       <description>There’s been a lot of buzz lately about Cursor, particularly its codebase indexing feature. This feature turns Cursor into a context-aware coding assistant. But how does it work, and can we build something similar? Let&amp;rsquo;s dive in.
 Understanding Cursor&amp;rsquo;s Magic Cursor&amp;rsquo;s codebase indexing, as explained in this forum post, works as follows:
 It chunks your codebase files locally.
@@ -28,17 +36,17 @@ These chunks are then sent to Cursor&amp;rsquo;s server, where embeddings are cr
     </item>
     <item>
       <title>Using Anthropic Models with Open WebUI</title>
-      <link>https://example.org/posts/2024-08-23-anthropic-webui/</link>
+      <link>http://localhost:1313/posts/2024-08-23-anthropic-webui/</link>
       <pubDate>Fri, 23 Aug 2024 22:41:52 -0700</pubDate>
-      <guid>https://example.org/posts/2024-08-23-anthropic-webui/</guid>
+      <guid>http://localhost:1313/posts/2024-08-23-anthropic-webui/</guid>
       <description>When it comes to code generation and critique, I&amp;rsquo;ve found Anthropic&amp;rsquo;s models to be my top choice. In my experience, they consistently deliver higher quality outputs compared to OpenAI&amp;rsquo;s GPT-4. Claude.ai, the official WebUI for Anthropic models, provides a streamlined interface for interacting with these models. However, it has a significant drawback: strict rate limits that can be quickly reached.
 To overcome this rate limit of claude.ai or chatgpt.com, many developers turn to open-source solutions.</description>
     </item>
     <item>
       <title>AI Design Pattern: Guardrails</title>
-      <link>https://example.org/posts/2024-08-18-guardrails/</link>
+      <link>http://localhost:1313/posts/2024-08-18-guardrails/</link>
       <pubDate>Sun, 18 Aug 2024 17:25:22 -0700</pubDate>
-      <guid>https://example.org/posts/2024-08-18-guardrails/</guid>
+      <guid>http://localhost:1313/posts/2024-08-18-guardrails/</guid>
       <description>Guardrails in AI are essential controls that ensure AI systems do not generate or process inappropriate content. These controls fall into two categories: input guardrails and output guardrails. Input guardrails filter out unsuitable data before it reaches the AI system, while output guardrails prevent the AI from producing harmful content.
 In this post, we’ll build on an example from the OpenAI cookbook to create a GenAI chatbot equipped with both input and output guardrails.</description>
     </item>

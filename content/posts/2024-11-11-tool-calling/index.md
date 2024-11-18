@@ -113,13 +113,11 @@ While the application handles simple queries well, it struggles with more comple
 
 ### 1. Retry on Error
 
-LLMs often fail on the first attempt with complex tasks but perform better when given feedback. Retrying with error messages and additional context allows the LLM to refine its response.
-
-We witnessed this in the recent [computer use](https://www.anthropic.com/news/3-5-models-and-computer-use) for coding demo by Anthropic. As part of the coding task to build a new personal website, Claude first attempted to start a Python server with an error, but then retried with a new version and succeeded.
+LLM tool calling often fails on the first attempt, especially with complex tasks. However, by providing error feedback and retrying, LLMs can refine their output. A recent example of this iterative approach comes from Anthropic's [computer use](https://www.anthropic.com/news/3-5-models-and-computer-use) coding demo. For the coding task of building a new website, Claude initially failed to start a Python server, it retried and successfully completing the task
 
 ![alt text](claude_computer_use_for_coding.png)
 
-For example, given the query "What are the most commented posts each month?", the initial SQL is invalid:
+Consider the same query "What are the most commented posts each month?". Initially, the LLM generates this incorrect SQL:
 
 ```sql
 SELECT STRFTIME(timestamp, '%Y-%m') AS month, title, MAX(comments) as max_comments
@@ -128,13 +126,13 @@ GROUP BY month
 ORDER BY month;
 ```
 
-The `run_sql` function throws an error:
+Executing the query against the DuckDB database returns an error:
 
 ```sh
 Binder Error: column "title" must appear in the GROUP BY clause or must be part of an aggregate function. Either add it to the GROUP BY list, or use "ANY_VALUE(title)" if the exact value of "title" is not important.
 ```
 
-By sending the error message back to the LLM along with the original query, the model has the opportunity to refine its response. In this case, the LLM generates a corrected query:
+By providing the error message and the original query as feedback, the LLM corrects its output:
 
 ```sql
 SELECT month, title, comments FROM (
@@ -146,19 +144,17 @@ SELECT month, title, comments FROM (
 
 ### 2. Allow More Thinking Time
 
-There has been a lot of recent talks about the inference scaling law which suggests the performance of a model improves with more computing time spent on inference. Jim Fan [tweeted](https://x.com/DrJimFan/status/1834279865933332752) about it when the OpenAI o1 model was out. Sequoia published a blog post [Generative AI’s Act o1](https://www.sequoiacap.com/article/generative-ais-act-o1/) to look into the future with its implications.
+The concept of the **inference scaling law** has been gaining traction recently, popularized by AI influencer Jim Fan's [tweet](https://x.com/DrJimFan/status/1834279865933332752) and Sequoia capital's blog post [Generative AI’s Act o1](https://www.sequoiacap.com/article/generative-ais-act-o1/). The law suggests that the performance of a model improves with more computing time spent on inference.
 
-How does this apply to our text-to-SQL application? One simple approach to allow more thinking time is to a pre-tool-calling step. In this step, the model is instructed to first break down the task into logical steps and draft SQL for each step before proceeding to the tool calling and execution.
+How does this apply to our text-to-SQL application? We can simply introduce a pre-tool-calling reasoning step by instructing the model to explicity break down the task to logical steps, and then invoke the tool for execution.
 
-Consider the same input query "What are the most commented posts each month?". By adding a reasoning step, the model can sketch out a plan to improve the SQL generation. Here's an example captured in the Langfuse [trace](https://us.cloud.langfuse.com/project/cm27ro2si00cd8mi56o0af4bq/traces/69bd6cfc-c8b6-4960-a3ef-08d6f4b06a73), where the model explicitly reasons through the solution
+We again concider the same query "What are the most commented posts each month?". This Langfuse [trace](https://us.cloud.langfuse.com/project/cm27ro2si00cd8mi56o0af4bq/traces/69bd6cfc-c8b6-4960-a3ef-08d6f4b06a73) reveals that the task was broken into 3 logical steps during reasoning:
 
-For example, instead of directly generating SQL for the query "What are the most commented posts each month?", instruct the model to first break the task into logical steps.
+1. **Extract the year and month** from the `timestamp` to group the data on a monthly basis.
+2. **Rank the posts** within each month based on the number of comments to identify the most commented one.
+3. **Filter** the top-ranked post for each month.
 
-> 1. **Extract the year and month** from the `timestamp` to group the data on a monthly basis.
-> 2. **Rank the posts** within each month based on the number of comments to identify the most commented one.
-> 3. **Filter** the top-ranked post for each month.
-
-This reasoning enables the LLM to produce an accurate final SQL query, even it is slightly verbose:
+This structured approach leads to a correct final SQL query, even being slightly verbose:
 
 ```sql
 WITH posts_with_month AS (
